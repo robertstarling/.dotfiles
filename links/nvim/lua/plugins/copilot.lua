@@ -1,42 +1,116 @@
 return {
-  { -- Copilot
-    'zbirenbaum/copilot.lua',
-    cmd = 'Copilot',
-    event = 'InsertEnter',
+  {
+    "zbirenbaum/copilot.lua",
 
-    config = function()
-      require('copilot').setup {
-        panel = { enabled = false },
-        suggestion = {
-          enabled = true,
-          auto_trigger = true,
-          hide_during_completion = true,
-          debounce = 75,
-          keymap = {
-            -- This is the same as normal completion.
-            accept = '<C-y>',
-            accept_word = '<C-f>',
-            accept_line = '<C-l>',
-            -- We can't use <C-n> (or <C-p>) because those are the triggers for normal completion.
-            next = '<C-j>',
-            prev = '<C-k>',
-            -- This is the same as normal completion.
-            dismiss = '<C-e>',
-          },
+    opts = {
+      panel = { enabled = true },
+      suggestion = {
+        keymap = {
+          -- LazyVim's defaults here are actually pretty nice, since they more or less match vim defaults
+          accept_word = "<C-f>",
+          accept_line = "<C-l>",
         },
-        filetypes = {
-          ['*'] = true,
-        },
-        copilot_node_command = 'node', -- Node.js version must be > 18.x
-        server_opts_overrides = {},
-      }
+      },
+      filetypes = {
+        ["*"] = true,
+      },
+    },
 
-      -- Toggle
+    init = function()
       -- TODO: This just doesn't work. It doesn't even appear to work when I run the command directly. It
       -- works more like 'Copilot disable'
       -- vim.keymap.set('n', '<space>tc', '<cmd>Copilot toggle<CR>', { desc = 'Toggle Copilot' })
-      vim.keymap.set('n', '<space>tcd', '<cmd>Copilot disable<CR>', { desc = 'disable copilot' })
-      vim.keymap.set('n', '<space>tce', '<cmd>Copilot enable<CR>', { desc = 'enable copilot' })
+      vim.keymap.set("n", "<space>ad", "<cmd>Copilot disable<CR>", { desc = "disable (Copilot)" })
+      vim.keymap.set("n", "<space>ae", "<cmd>Copilot enable<CR>", { desc = "enable (Copilot)" })
+      vim.keymap.set("n", "<space>ap", "<cmd>Copilot panel<CR>", { desc = "open panel (Copilot)" })
+    end,
+  },
+  {
+    "CopilotC-Nvim/CopilotChat.nvim",
+    branch = "main",
+    cmd = "CopilotChat",
+    opts = function()
+      return {
+        model = "claude-sonnet-4",
+        auto_insert_mode = false,
+        question_header = "  Ian ",
+        answer_header = "  Copilot ",
+        highlight_headers = true, -- Highlight headers in chat, disable if using markdown renderers (like render-markdown.nvim)
+        show_help = true,
+        auto_follow_cursor = false,
+        window = {
+          layout = "vertical",
+          relative = "win",
+          width = 0.5,
+        },
+        mappings = {
+          submit_prompt = {
+            insert = "<cr>",
+          },
+          reset = {
+            normal = "gx",
+            insert = nil,
+          },
+          accept_diff = {
+            normal = "ga",
+            insert = nil,
+          },
+        },
+      }
+    end,
+    keys = {
+      { "<leader>a", "", desc = "+ai", mode = { "n", "v" } },
+      { "<leader>ac", "<cmd>CopilotChatClose<CR>", desc = "close (CopilotChat)", mode = { "n", "v" } },
+      { "<leader>af", "<cmd>CopilotChatFix<CR>", desc = "fix (CopilotChat)", mode = { "v" } },
+      { "<leader>ar", "<cmd>CopilotChatReview<CR>", desc = "review (CopilotChat)", mode = { "v" } },
+      { "<leader>ad", "<cmd>CopilotChatDocs<CR>", desc = "docs (CopilotChat)", mode = { "v" } },
+      { "<leader>ae", "<cmd>CopilotChatExplain<CR>", desc = "explain (CopilotChat)", mode = { "v" } },
+      {
+        "<leader>ao",
+        function()
+          require("CopilotChat").open({
+            window = {
+              layout = "vertical",
+              relative = "win",
+              width = 0.5,
+            },
+          })
+          -- Go to bottom and enter insert mode
+          vim.schedule(function()
+            vim.cmd("normal! G") -- Go to the last line
+            vim.cmd("startinsert!") -- Enter insert mode. The ! makes it work like 'A'
+          end)
+        end,
+        desc = "open (CopilotChat)",
+        mode = { "n", "v" },
+      },
+      {
+        "<leader>aq",
+        function()
+          vim.ui.input({
+            prompt = "Quick Chat: ",
+          }, function(input)
+            if input ~= "" then
+              require("CopilotChat").ask(input)
+            end
+          end)
+        end,
+        desc = "quick (CopilotChat)",
+        mode = { "n", "v" },
+      },
+    },
+    config = function(_, opts)
+      local chat = require("CopilotChat")
+
+      vim.api.nvim_create_autocmd("BufEnter", {
+        pattern = "copilot-chat",
+        callback = function()
+          vim.opt_local.relativenumber = false
+          vim.opt_local.number = false
+        end,
+      })
+
+      chat.setup(opts)
     end,
   },
 }
