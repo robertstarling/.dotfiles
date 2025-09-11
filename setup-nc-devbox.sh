@@ -4,13 +4,15 @@
 
 setup_bash_aliases() {
   # Check if the lines already exist to avoid duplicates
-  if grep -q 'source "$HOME/.dotfiles/bash_aliases/"' "$HOME/.bash_aliases"; then
+  if [ -f "$HOME/.bash_aliases" ] && grep -q 'dotfiles/bash_aliases' "$HOME/.bash_aliases"; then
     echo "Bash aliases already set up, skipping."
     return
   fi
   echo 'source "$HOME/.dotfiles/bash_aliases/azure"' >>"$HOME/.bash_aliases"
   echo 'source "$HOME/.dotfiles/bash_aliases/devbox"' >>"$HOME/.bash_aliases"
   echo 'source "$HOME/.dotfiles/bash_aliases/utils"' >>"$HOME/.bash_aliases"
+
+  echo "Bash aliases set up successfully. Log out and back in to apply changes."
 }
 
 add_ssh_port_56312() {
@@ -28,7 +30,7 @@ add_ssh_port_56312() {
 main() {
   setup_bash_aliases
   add_ssh_port_56312
-  echo "All setup tasks are complete! Your environment is ready to go!"
+  echo "All setup tasks complete for: $0. Your environment is ready to go!"
 }
 
 main
