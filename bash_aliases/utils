@@ -9,8 +9,3 @@ export PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\
 title() {
     echo -ne "\033]0;$1\007"
 }
-
-# Source any additional .bash_aliases* files if present
-for f in ~/.bash_aliases*; do
-    [ -f "$f" ] && source "$f"
-done
