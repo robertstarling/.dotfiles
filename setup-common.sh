@@ -10,7 +10,7 @@ create_github_ssh_key_if_missing() {
     cat  "$HOME/.ssh/id_ed25519_github.pub"
     echo 
     echo "Then confirm access with: ssh -T git@github.com"
-  ;fi
+  fi
 }
 
 main() {
