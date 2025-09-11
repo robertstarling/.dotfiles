@@ -13,6 +13,9 @@ create_github_ssh_key_if_missing() {
   cat  "$HOME/.ssh/id_ed25519_github.pub"
   echo 
   echo "Then confirm access with: ssh -T git@github.com"
+  echo "Then switch to ssh authentication: "
+  echo "  git remote -v"
+  echo "  git remote set-url origin git@github.com:robertstarling/.dotfiles"
 }
 
 main() {
