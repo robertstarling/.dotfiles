@@ -1,0 +1,16 @@
+# Recursive grep
+rr() {
+        echo grep -r "$1" --include="*$2" ./
+        grep -r "$1" --include="*$2" ./
+}
+
+# Function to set window title in Windows Terminal
+export PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+title() {
+    echo -ne "\033]0;$1\007"
+}
+
+# Source any additional .bash_aliases* files if present
+for f in ~/.bash_aliases*; do
+    [ -f "$f" ] && source "$f"
+done

@@ -1,0 +1,9 @@
+alias k='kubectl'
+alias n='kubectl config set-context --current --namespace'
+alias h='helm'
+alias p='kubectl get pods'
+alias w='watch kubectl get pods'
+complete -F __start_kubectl k
+complete -F __start_helm h
+source <(kubectl completion bash)
+source <(helm completion bash)

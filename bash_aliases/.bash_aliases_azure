@@ -1,0 +1,75 @@
+# Azure subscriptions
+alias .sandbox='az account set -s a3eeb848-665a-4dbf-80a4-eb460930fb23'
+alias .dev='az account set -s fca2e8ee-1179-48b8-9532-428ed0873a2e'
+
+# Search for Azure Resource Groups
+getrg() {
+  local query="[]"
+  for arg in "$@"; do
+    query="[?contains(name, '$arg')] | $query"
+  done
+  query="${query% | []}"
+  az group list --query "$query.{Name:name, Location:location}" --output table
+}
+
+# Search for Simulator hosted resource groups
+function getsim() {
+    local first_pattern="$1"
+    local second_pattern_prefix="$2"
+
+    # Get resource groups matching the first pattern
+    local resource_groups=$(az group list --query "[?contains(name, 'robstarling') && contains(name, 'simdev')].name" --output tsv)
+    echo $resource_groups
+
+    for rg in $resource_groups; do
+      # Extract the unique identifier from the first pattern
+      local unique_id=$(echo $rg | grep -oP '(?<=simdev-)\d+')
+      echo $unique_id
+
+      # Construct the second pattern
+      local second_pattern="simdev-${unique_id}-cluster-1-HostedResources-"
+      echo $second_pattern
+
+      # Get resource groups matching the second pattern
+      az group list --query "[?contains(name, '$second_pattern')].{Name:name, Location:location}" --output table
+    done
+}
+
+# ssh to simulator using the Resource Group name, e.g. 
+#   getrg sim robstarling
+#   sim robstarling-2504-12_id-simdev-3391322
+sim() {
+  local rg=$1
+  local id=$(echo "$rg" | grep -oE '[0-9]+$')
+  local sandboxSubscription=a3eeb848-665a-4dbf-80a4-eb460930fb23
+  az ssh arc -g "$rg" -n "simdev-${id}-vm-1" --subscription $sandboxSubscription
+}
+
+# Function to retrieve and assign BMM Replace values to environment variables
+get_baremetal_info() {
+  local RG=$1
+  local MACHINE_NAME=$2
+
+  # Retrieve the values and assign them to environment variables
+  local machine_info=$(az networkcloud baremetalmachine show -n $MACHINE_NAME -g $RG --query "{machineName:machineName, bootMacAddress:bootMacAddress, bmcMacAddress:bmcMacAddress, serialNumber:serialNumber}" --output tsv)
+
+  # Split the output into individual variables
+  read machineName bootMacAddress bmcMacAddress serialNumber <<< "$machine_info"
+
+  # Export the variables to make them available in the current shell session
+  export machineName
+  export bootMacAddress
+  export bmcMacAddress
+  export serialNumber
+
+  # Print the values to verify
+  echo "\$machineName: $machineName"
+  echo "\$bootMacAddress: $bootMacAddress"
+  echo "\$bmcMacAddress: $bmcMacAddress"
+  echo "\$serialNumber: $serialNumber"
+
+  # BMC password is also needed
+  echo
+  echo "To retrieve BMC password:"
+  echo "kubectl -n nc-system get secret $machineName-bmc -o json | jq -r .data.password | base64 -d"
+}
