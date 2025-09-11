@@ -1,1 +1,1 @@
-export PATH="$HOME/.local/bin:$HOME/git/nc-devbox:$PATH"
+export PATH="$HOME/.local/bin:$HOME/nc-devbox:$PATH"
