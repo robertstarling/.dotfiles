@@ -1,6 +1,16 @@
 #!/bin/bash
 
 export PATH="$HOME/nc-devbox:$PATH"
+export PATH="$PATH:$HOME/.local/bin"
+
+# Set custom GOCACHE location
+export GOCACHE=/mnt/go-cache
+
+# Ensure the cache directory exists and has correct ownership
+if [ ! -d "$GOCACHE" ]; then
+    sudo mkdir -p "$GOCACHE"
+    sudo chown azureuser:azureuser "$GOCACHE"
+fi
 
 # devboxRG="robstarling-2509"
 devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
