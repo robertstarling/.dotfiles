@@ -25,7 +25,7 @@ get_coverage() {
   local tarName=$1
 
   # scp robstarling-2504-vm:$tarName.tar ~/rjs/Downloads/coverage/
-  scp robstarling-2509-vm:$tarName.tar ~/rjs/Downloads/coverage/
+  scp devbox:$tarName.tar ~/rjs/Downloads/coverage/
   tar -xf ~/rjs/Downloads/coverage/$tarName.tar -C ~/rjs/Downloads/coverage/
   mv ~/rjs/Downloads/coverage/home ~/rjs/Downloads/coverage/$tarName
   ls ~/rjs/Downloads/coverage/$tarName/azureuser

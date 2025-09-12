@@ -2,16 +2,21 @@
 
 # This file is fully idempotent, so feel free to run it multiple times.
 
+# Usage:
+#   ./setup-nc-devbox.sh DEVBOX_RESOURCE_GROUP
+
 setup_bash_aliases() {
-  filename="$HOME/.bash_aliases"
+  local devboxRG="$1"
+  local filename="$HOME/.bash_aliases"
   # Check if the lines already exist to avoid duplicates
   if [ -f "$filename" ] && grep -q 'dotfiles/bash_aliases' "$filename"; then
     echo "Bash aliases already set up, skipping."
     return
   fi
-  echo 'source "$HOME/.dotfiles/bash_aliases/azure"' >>"$filename"
-  echo 'source "$HOME/.dotfiles/bash_aliases/utils"' >>"$filename"  
+  echo 'source "$HOME/.dotfiles/bash_aliases/azure"'  >>"$filename"
+  echo 'source "$HOME/.dotfiles/bash_aliases/utils"'  >>"$filename"  
   echo 'source "$HOME/.dotfiles/bash_aliases/devbox"' >>"$filename"
+  echo "export devboxRG=$devboxRG"                    >>"$filename"
 
   echo "Bash aliases set up successfully. Log out and back in to apply changes, or source $filename"
 }
@@ -36,7 +41,7 @@ setup_devbox_config() {
     return
   fi
   cp "$HOME/nc-devbox/docs/examples/config.yaml" "$filename"
-  sed -i 's/resource_group: .*/resource_group: robstarling-2509/' "$filename"
+  sed -i "s/resource_group: .*/resource_group: $1/" "$filename"
   sed -i 's/time_to_live: .*/time_to_live: "1 month"/' "$filename"
   echo "Successfully added overrides:"
   diff "$HOME/nc-devbox/docs/examples/config.yaml" "$filename"
@@ -45,10 +50,11 @@ setup_devbox_config() {
 }
 
 main() {
-  setup_bash_aliases
+  local devboxRG="$1"
+  setup_bash_aliases $devboxRG
   add_ssh_port_56312
-  setup_devbox_config
+  setup_devbox_config $devboxRG
   echo "All setup tasks complete for: $0. Your environment is ready to go!"
 }
 
-main
+main "$1"
