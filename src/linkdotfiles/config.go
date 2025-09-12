@@ -39,23 +39,7 @@ func getConfig() Config {
 		SourceRoot: filepath.Join(homeDir, ".dotfiles/links"),
 		TargetRoot: homeDir,
 		Links: []Link{
-			{"azure/config", ".azure/config"},
-			{"bin", ".bin"},
-			{"fonts", ".fonts"},
-			{"gitconfig", ".gitconfig"},
-			{"global_gitignore", ".global_gitignore"},
-			{"zprofile", ".zprofile"},
 			{"tmux", ".config/tmux"},
-			{"kitty", ".config/kitty"},
-			{"nvim", ".config/nvim"},
-			{"zsh", ".zsh"},
-			{"zshenv", ".zshenv"},
-			{"zshrc", ".zshrc"},
-			{"lazygit.yml", ".config/lazygit/config.yml"},
-			{"sesh", ".config/sesh"},
-			{"shellcheckrc", ".shellcheckrc"},
-			{"vscode-nvim", ".config/vscode-nvim"},
-			{"opencode", ".opencode"},
 		},
 	}
 }
