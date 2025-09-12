@@ -1,1 +1,14 @@
-export PATH="$HOME/.local/bin:$HOME/nc-devbox:$PATH"
+#!/bin/bash
+
+export PATH="$HOME/nc-devbox:$PATH"
+
+devboxRG="robstarling-2509"
+devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
+
+# Reset janitor tag on the devbox resource group to extend its life
+# echo "Current tags on $devboxRG in subscription $devboxSub:"
+# az group show --subscription $devboxSub --name $devboxRG --query tags -o json
+echo "Resetting janitor tags to extend life..."
+janitor_reset $devboxRG $devboxSub 
+# echo "Updated tags:"
+az group show --subscription $devboxSub --name $devboxRG --query tags -o json

@@ -3,16 +3,17 @@
 # This file is fully idempotent, so feel free to run it multiple times.
 
 setup_bash_aliases() {
+  filename="$HOME/.bash_aliases"
   # Check if the lines already exist to avoid duplicates
-  if [ -f "$HOME/.bash_aliases" ] && grep -q 'dotfiles/bash_aliases' "$HOME/.bash_aliases"; then
+  if [ -f "$filename" ] && grep -q 'dotfiles/bash_aliases' "$filename"; then
     echo "Bash aliases already set up, skipping."
     return
   fi
-  echo 'source "$HOME/.dotfiles/bash_aliases/azure"' >>"$HOME/.bash_aliases"
-  echo 'source "$HOME/.dotfiles/bash_aliases/devbox"' >>"$HOME/.bash_aliases"
-  echo 'source "$HOME/.dotfiles/bash_aliases/utils"' >>"$HOME/.bash_aliases"
+  echo 'source "$HOME/.dotfiles/bash_aliases/azure"' >>"$filename"
+  echo 'source "$HOME/.dotfiles/bash_aliases/utils"' >>"$filename"  
+  echo 'source "$HOME/.dotfiles/bash_aliases/devbox"' >>"$filename"
 
-  echo "Bash aliases set up successfully. Log out and back in to apply changes."
+  echo "Bash aliases set up successfully. Log out and back in to apply changes, or source $filename"
 }
 
 add_ssh_port_56312() {
@@ -27,9 +28,26 @@ add_ssh_port_56312() {
   sudo ss -tuln | grep 56321
 }
 
+setup_devbox_config() {
+  # Check if the lines already exist to avoid duplicates
+  filename="$HOME/.config/nc-devbox/config.yaml"
+  if [ -f "$filename" ]; then
+    echo "$filename already exists, skipping."
+    return
+  fi
+  cp "$HOME/nc-devbox/docs/examples/config.yaml" "$filename"
+  sed -i 's/resource_group: .*/resource_group: robstarling-2509/' "$filename"
+  sed -i 's/time_to_live: .*/time_to_live: "1 month"/' "$filename"
+  echo "Successfully added overrides:"
+  diff "$HOME/nc-devbox/docs/examples/config.yaml" "$filename"
+  echo 
+  echo "Verify with: vm status"
+}
+
 main() {
   setup_bash_aliases
   add_ssh_port_56312
+  setup_devbox_config
   echo "All setup tasks complete for: $0. Your environment is ready to go!"
 }
 
