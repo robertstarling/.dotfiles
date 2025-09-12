@@ -73,3 +73,51 @@ get_baremetal_info() {
   echo "To retrieve BMC password:"
   echo "kubectl -n nc-system get secret $machineName-bmc -o json | jq -r .data.password | base64 -d"
 }
+
+# janitor checks an Azure resource group's "Created" tag,
+# which is used by the Janitor to determine when to clean up the resource group.
+#
+# Usage:
+#   azure_rg_reset_created_tag RESOURCE_GROUP [SUBSCRIPTION]
+janitor() {
+  local __resource_group="$1"
+  local __subscription="$2"
+
+  # Specify subscription only if provided in the parameters. Otherwise az will use the current one.
+  local subscription_args=()
+  if [ -n "${__subscription:-}" ]; then
+    subscription_args=(--subscription "$__subscription")
+  fi
+
+  az group show  "${subscription_args[@]}" --name $__resource_group --query tags -o json
+}
+
+# azure_rg_reset_created_tag updates an Azure resource group's "Created" tag,
+# which is used by the Janitor to determine when to clean up the resource group.
+#
+# Usage:
+#   azure_rg_reset_created_tag RESOURCE_GROUP SUBSCRIPTION
+janitor_reset() {
+  local __resource_group="$1"
+  local __subscription="$2"
+  local __ts=$(date +%Y-%m-%dT%H:%M:%SZ)
+
+  # Specify subscription only if provided in the parameters. Otherwise az will use the current one.
+  local subscription_args=()
+  if [ -n "${__subscription:-}" ]; then
+    subscription_args=(--subscription "$__subscription")
+  fi
+
+  # Read existing tags as JSON (null if none), then merge/overwrite the Created/CleanupFrequency/Owner keys.
+  local existing_tags_json
+  existing_tags_json=$(az group show "${subscription_args[@]}" --name "$__resource_group" --query tags -o json 2>/dev/null || echo null)
+
+  local new_tags_json
+  new_tags_json=$(echo "$existing_tags_json" | jq --arg ts "$__ts" '. // {} | .Created=$ts')
+
+  # Convert merged tags JSON into key=value pairs for the --tags arg.
+  local tags_kv
+  IFS=$'\n' read -r -d '' -a tags_kv < <(echo "$new_tags_json" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' && printf '\0')
+
+  az group update "${subscription_args[@]}" --name "$__resource_group" --tags "${tags_kv[@]}" --only-show-errors >/dev/null
+}
