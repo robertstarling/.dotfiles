@@ -21,8 +21,11 @@ setup_bash_aliases() {
   echo "Bash aliases set up successfully. Log out and back in to apply changes, or source $filename"
 }
 
+# Alternative secure inbound SSH port from dynamic TCP range
+# (May also need to update Azure Network Security Group to allow inbound on this port) e.g.
+# [robstarling Sep2025] provide secure alternative SSH port filtered by source IP
 add_ssh_port_56312() {
-  # first check if anything listenting on 56321
+  # first check if anything listening on 56321
   if sudo ss -tuln | grep 56321; then
     echo "Port 56321 already in use, skipping SSH port addition."
     return
