@@ -2,7 +2,7 @@
 
 export PATH="$HOME/nc-devbox:$PATH"
 
-devboxRG="robstarling-2509"
+# devboxRG="robstarling-2509"
 devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
 
 # Reset janitor tag on the devbox resource group to extend its life
