@@ -2,6 +2,56 @@
 alias .sandbox='az account set -s a3eeb848-665a-4dbf-80a4-eb460930fb23'
 alias .dev='az account set -s fca2e8ee-1179-48b8-9532-428ed0873a2e'
 
+# Login helper ensuring desired tenant + subscription selected
+azure_login() {
+  local target_tenant="72f988bf-86f1-41af-91ab-2d7cd011db47"
+  local target_subscription="a3eeb848-665a-4dbf-80a4-eb460930fb23"
+  local force="false"
+
+  # Allow optional flag: azure_login --force
+  if [ "$1" = "--force" ]; then
+    force="true"
+  fi
+
+  # Fast path: already logged into correct subscription (unless --force)
+  if [ "$force" = "false" ]; then
+    if current_sub=$(az account show --query id -o tsv 2>/dev/null); then
+      if [ "$current_sub" = "$target_subscription" ]; then
+        return 0
+      fi
+    fi
+  fi
+
+  # Prefer service principal creds if present (non-interactive)
+  if [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_CLIENT_SECRET" ]; then
+    # Respect provided AZURE_TENANT_ID, else fall back to target_tenant
+    local login_tenant="${AZURE_TENANT_ID:-$target_tenant}"
+    echo "Logging into Azure with service principal for tenant $login_tenant ..."
+    if ! az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$login_tenant" --only-show-errors >/dev/null; then
+      echo "Failed SP login" >&2
+      return 1
+    fi
+  else
+    # Interactive login scoped to tenant to avoid enumerating other tenants
+    echo "Interactive Azure login for tenant $target_tenant ..."
+    if ! az login --tenant "$target_tenant" --only-show-errors >/dev/null; then
+      echo "Interactive login failed" >&2
+      return 1
+    fi
+  fi
+
+  # Select subscription explicitly (suppress output)
+  if ! az account set -s "$target_subscription" 2>/dev/null; then
+    echo "Failed to set subscription $target_subscription" >&2
+    return 1
+  fi
+
+  # Optional: reduce noisy warnings for subsequent commands
+  az config set core.only_show_errors=true >/dev/null 2>&1 || true
+
+  echo "Azure CLI context set to subscription: $target_subscription (tenant: $target_tenant)"
+}
+
 # Search for Azure Resource Groups
 getrg() {
   local query="[]"
