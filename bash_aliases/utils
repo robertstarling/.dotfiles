@@ -9,3 +9,74 @@ export PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\
 title() {
     echo -ne "\033]0;$1\007"
 }
+
+# days_until_stale ISO8601_TIMESTAMP [TTL_DAYS]
+# Given an ISO8601 UTC timestamp (e.g. 2025-09-13T01:12:14Z) it assumes the
+# resource is valid for 30 days (or TTL_DAYS if provided) and prints how many
+# whole days remain until it becomes stale. Output examples:
+#   "17 days"  (>= 2 days remaining)
+#   "1 day"    (exactly 1 day remaining)
+#   "0 days"   (less than 1 day but not stale yet)
+#   "stale"    (expiry time passed)
+# Returns non-zero exit status on invalid input.
+# Implementation notes:
+# - Uses GNU date for arithmetic; requires Linux / GNU coreutils.
+# - Rounds down to whole days.
+# - Treats negative remaining seconds as stale.
+# - Accepts timestamps with or without trailing Z; if missing, assumes UTC.
+# - If TTL_DAYS is not numeric, returns error.
+# - If timestamp parsing fails, returns error.
+#
+# Examples:
+#   days_until_stale 2025-09-13T01:12:14Z
+#   days_until_stale 2025-09-13T01:12:14 60
+#   days_until_stale "$(date -u +%Y-%m-%dT%H:%M:%SZ)" 7
+#
+# For scripting, capture output; exit code 0 means success.
+days_until_stale() {
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        echo "Usage: days_until_stale ISO8601_TIMESTAMP [TTL_DAYS]" >&2
+        return 2
+    fi
+    local input_ts="$1"
+    local ttl_days="${2:-30}"
+
+    # Validate TTL numeric
+    if ! [[ "$ttl_days" =~ ^[0-9]+$ ]]; then
+        echo "TTL_DAYS must be an integer (got: $ttl_days)" >&2
+        return 3
+    fi
+
+    # Normalize: ensure trailing Z (UTC) if not present and no timezone offset provided
+    if [[ ! "$input_ts" =~ [Zz]$ ]] && [[ ! "$input_ts" =~ [+\-][0-9]{2}:[0-9]{2}$ ]]; then
+        input_ts="${input_ts}Z"
+    fi
+
+    # Convert input to epoch seconds
+    local start_epoch
+    if ! start_epoch=$(date -u -d "$input_ts" +%s 2>/dev/null); then
+        echo "Invalid timestamp: $1" >&2
+        return 4
+    fi
+
+    local ttl_seconds=$(( ttl_days * 86400 ))
+    local expiry_epoch=$(( start_epoch + ttl_seconds ))
+    local now_epoch=$(date -u +%s)
+    local remaining_seconds=$(( expiry_epoch - now_epoch ))
+
+    if [ $remaining_seconds -le 0 ]; then
+        echo "stale"
+        return 0
+    fi
+
+    local remaining_days=$(( remaining_seconds / 86400 ))
+
+    if [ $remaining_days -gt 1 ]; then
+        echo "$remaining_days days"
+    elif [ $remaining_days -eq 1 ]; then
+        echo "1 day"
+    else
+        # less than 1 day but still positive
+        echo "0 days"
+    fi
+}

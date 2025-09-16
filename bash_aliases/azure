@@ -7,24 +7,49 @@ azure_login() {
   local target_tenant="72f988bf-86f1-41af-91ab-2d7cd011db47"
   local target_subscription="a3eeb848-665a-4dbf-80a4-eb460930fb23"
   local force="false"
+  local verbose="false"
 
-  # Allow optional flag: azure_login --force
-  if [ "$1" = "--force" ]; then
+  # Flags: --force forces re-login; --verbose prints diagnostics
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --force) force="true" ; shift ;;
+      --verbose|-v) verbose="true" ; shift ;;
+      *) break ;;
+    esac
+  done
+
+  # Environment override: AZURE_LOGIN_FORCE=1 forces re-login
+  if [ "${AZURE_LOGIN_FORCE:-}" = "1" ]; then
     force="true"
   fi
 
-  # Fast path: already logged into correct subscription (unless --force)
-  if [ "$force" = "false" ]; then
-    if current_sub=$(az account show --query id -o tsv 2>/dev/null); then
-      if [ "$current_sub" = "$target_subscription" ]; then
-        return 0
-      fi
+  # Helper to log when verbose
+  _azl_log() { [ "$verbose" = "true" ] && echo "[azure_login] $*" || true; }
+
+  # Determine current subscription (may be present even if token expired)
+  local current_sub="" current_tenant=""
+  if current_sub=$(az account show --query id -o tsv 2>/dev/null); then
+    current_tenant=$(az account show --query tenantId -o tsv 2>/dev/null || true)
+    _azl_log "Detected current subscription: $current_sub (tenant: $current_tenant)"
+  fi
+
+  # Function to test whether tokens are currently usable. We request an access token; this will fail fast if refresh token expired.
+  _token_valid() {
+    az account get-access-token --resource https://management.azure.com/ --query accessToken -o tsv >/dev/null 2>&1
+  }
+
+  # Fast path: subscription matches AND token retrieval works AND not forced.
+  if [ "$force" = "false" ] && [ "$current_sub" = "$target_subscription" ]; then
+    if _token_valid; then
+      _azl_log "Fast path: valid token & correct subscription; no re-login needed.";
+      return 0
+    else
+      _azl_log "Token invalid/expired; re-authentication required.";
     fi
   fi
 
   # Prefer service principal creds if present (non-interactive)
   if [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_CLIENT_SECRET" ]; then
-    # Respect provided AZURE_TENANT_ID, else fall back to target_tenant
     local login_tenant="${AZURE_TENANT_ID:-$target_tenant}"
     echo "Logging into Azure with service principal for tenant $login_tenant ..."
     if ! az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$login_tenant" --only-show-errors >/dev/null; then
@@ -32,7 +57,6 @@ azure_login() {
       return 1
     fi
   else
-    # Interactive login scoped to tenant to avoid enumerating other tenants
     echo "Interactive Azure login for tenant $target_tenant ..."
     if ! az login --tenant "$target_tenant" --only-show-errors >/dev/null; then
       echo "Interactive login failed" >&2
@@ -40,7 +64,7 @@ azure_login() {
     fi
   fi
 
-  # Select subscription explicitly (suppress output)
+  # Select subscription explicitly
   if ! az account set -s "$target_subscription" 2>/dev/null; then
     echo "Failed to set subscription $target_subscription" >&2
     return 1
@@ -48,6 +72,12 @@ azure_login() {
 
   # Optional: reduce noisy warnings for subsequent commands
   az config set core.only_show_errors=true >/dev/null 2>&1 || true
+
+  if _token_valid; then
+    _azl_log "Verified new token acquisition succeeded."
+  else
+    _azl_log "Warning: token validation failed immediately after login (this is unexpected)."
+  fi
 
   echo "Azure CLI context set to subscription: $target_subscription (tenant: $target_tenant)"
 }
@@ -139,7 +169,32 @@ janitor() {
     subscription_args=(--subscription "$__subscription")
   fi
 
-  az group show  "${subscription_args[@]}" --name $__resource_group --query tags -o json
+  # Read existing tags as JSON (null if none)
+  local tags_json
+  if ! tags_json=$(az group show "${subscription_args[@]}" --name "$__resource_group" --query tags -o json 2>/dev/null); then
+    echo "Failed to retrieve tags for resource group: $__resource_group" >&2
+    return 1
+  fi
+
+  echo "$tags_json"
+
+  # Parse the Created tag if present, and display the number of days remaining until stale
+  local created=""
+  if command -v jq >/dev/null 2>&1; then
+    created=$(echo "$tags_json" | jq -r '.Created // empty')
+  else
+    created=$(echo "$tags_json" | grep -o '"Created"[^"]*"[^"]*"' | sed -E 's/.*"Created" *: *"([^"]*)".*/\1/')
+  fi
+
+  if [ -n "$created" ]; then
+    if command -v days_until_stale >/dev/null 2>&1; then
+      local remaining
+      remaining=$(days_until_stale "$created" 30 2>/dev/null || true)
+      [ -n "$remaining" ] && echo "$remaining remaining"
+    else
+      echo "Created: $created"
+    fi
+  fi  
 }
 
 # azure_rg_reset_created_tag updates an Azure resource group's "Created" tag,
