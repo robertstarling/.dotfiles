@@ -8,4 +8,8 @@ git remote set-url origin git@github.com:robertstarling/.dotfiles
 ./setup-common.sh
 ./setup-nc-devbox.sh robstarling-2509
 ./setup-wsl.sh
+
+# TODO
+# - helm
+# - gopls
 ```
