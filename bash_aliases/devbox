@@ -20,3 +20,8 @@ janitor $devboxRG $devboxSub
 
 # Reset janitor tag on the devbox resource group whenever we log into azure to prevent automated cleanup while the devbox is in use.
 alias azl='azure_login && janitor_reset $devboxRG $devboxSub'
+
+# env for go toolchain
+export GOPRIVATE="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
+export GONOSUMDB="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
+export GONOPROXY="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
