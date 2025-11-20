@@ -115,10 +115,20 @@ function getsim() {
     done
 }
 
+# Check for resource groups matching 'robstarling*<optionalpattern>*-simdev-[0-9]*' and provide the user with an
+# interactive menu of matching resource group names, allowing them to select one to ssh into, using the sim_ssh function below.
+# The user can optionally provide a pattern to filter the resource groups further.
+# If there is only one choice, ssh into it directly.
+# If multiple choices, choose the most recent as the default (based on the build number suffix after simdev-)
+sim() {
+  local optionalFilter=$1
+  # TODO
+}
+
 # ssh to simulator using the Resource Group name, e.g. 
 #   getrg sim robstarling
 #   sim robstarling-2504-12_id-simdev-3391322
-sim() {
+sim_ssh() {
   local rg=$1
   local id=$(echo "$rg" | grep -oE '[0-9]+$')
   local sandboxSubscription=a3eeb848-665a-4dbf-80a4-eb460930fb23
