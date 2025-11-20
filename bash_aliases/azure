@@ -153,7 +153,13 @@ sim() {
   fi
 
   if [ "$count" -eq 1 ]; then
-    sim_ssh "${candidates[0]}"
+    local build_id
+    build_id=$(echo "${candidates[0]}" | grep -oE '[0-9]+$')
+    if [ -z "$build_id" ]; then
+      echo "Unable to parse simdev build id from ${candidates[0]}" >&2
+      return 1
+    fi
+    sim_ssh "$build_id"
     return $?
   fi
 
@@ -203,17 +209,45 @@ sim() {
     fi
   fi
 
-  sim_ssh "$selection"
+  local build_id
+  build_id=$(echo "$selection" | grep -oE '[0-9]+$')
+  if [ -z "$build_id" ]; then
+    echo "Unable to parse simdev build id from $selection" >&2
+    return 1
+  fi
+  sim_ssh "$build_id"
 }
 
-# ssh to simulator using the Resource Group name, e.g. 
-#   getrg sim robstarling
-#   sim robstarling-2504-12_id-simdev-3391322
+# ssh to a simulator using only the build number, e.g.
+#   sim_ssh 3391322
 sim_ssh() {
-  local rg=$1
-  local id=$(echo "$rg" | grep -oE '[0-9]+$')
+  local build_id=$1
   local sandboxSubscription=a3eeb848-665a-4dbf-80a4-eb460930fb23
-  az ssh arc -g "$rg" -n "simdev-${id}-vm-1" --subscription $sandboxSubscription
+
+  if [[ -z "$build_id" || ! "$build_id" =~ ^[0-9]+$ ]]; then
+    echo "Usage: sim_ssh <build-id>" >&2
+    return 1
+  fi
+
+  local rg_candidates target_rg=""
+  if ! rg_candidates=$(az group list --query "[?contains(name, 'simdev-${build_id}')].name" --output tsv 2>/dev/null); then
+    echo "Failed to retrieve simulator resource groups" >&2
+    return 1
+  fi
+
+  while IFS= read -r rg; do
+    [ -z "$rg" ] && continue
+    [[ $rg == *"-simdev-${build_id}"* ]] || continue
+    target_rg="$rg"
+    break
+  done <<<"$rg_candidates"
+
+  if [ -z "$target_rg" ]; then
+    echo "Unable to locate simulator resource group for build ${build_id}" >&2
+    return 1
+  fi
+
+  az ssh arc -g "$target_rg" -n "simdev-${build_id}-vm-1" --subscription $sandboxSubscription
 }
 
 # Function to retrieve and assign BMM Replace values to environment variables
