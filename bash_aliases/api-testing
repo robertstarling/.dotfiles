@@ -17,13 +17,18 @@ get_cluster_id_or_fail() {
 }
 
 # sim_health runs the cluster-health suite against the first matching cluster.
+# Accepts either a descriptive substring or a numeric build id (simdev-<id>).
 # Environment variables are set only for the child process and won't leak
 # into the caller's shell after the function returns.
 sim_health() {
   local substring="$1"
   if [ -z "$substring" ]; then
-    echo "Usage: sim_health <cluster-name-substring>" >&2
+    echo "Usage: sim_health <cluster-name-substring|build-id>" >&2
     return 2
+  fi
+
+  if [[ "$substring" =~ ^[0-9]+$ ]]; then
+    substring="simdev-$substring"
   fi
 
   source ~/e2e/sim || return 1
