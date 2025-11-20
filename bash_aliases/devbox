@@ -1,27 +1,15 @@
 #!/bin/bash
 
+# Add ~/nc-devbox PATH; this contains various useful scripts from the devbox CLI
 export PATH="$HOME/nc-devbox:$PATH"
+
+# Add ~/.local/bin to PATH; this is where pipx installs binaries
 export PATH="$PATH:$HOME/.local/bin"
 
-# Set custom GOCACHE location
-export GOCACHE=/mnt/go-cache
-
-# Ensure the cache directory exists and has correct ownership
-if [ ! -d "$GOCACHE" ]; then
-    sudo mkdir -p "$GOCACHE"
-    sudo chown azureuser:azureuser "$GOCACHE"
-fi
-
+# Show current janitor TTL when we log in
 devboxRG="robstarling-2509"
 devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
-
-# Show current janitor TTL when we log in
 janitor $devboxRG $devboxSub
 
 # Reset janitor tag on the devbox resource group whenever we log into azure to prevent automated cleanup while the devbox is in use.
 alias azl='azure_login && janitor_reset $devboxRG $devboxSub'
-
-# env for go toolchain
-export GOPRIVATE="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
-export GONOSUMDB="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
-export GONOPROXY="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"

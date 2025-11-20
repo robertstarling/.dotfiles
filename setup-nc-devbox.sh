@@ -13,10 +13,11 @@ setup_bash_aliases() {
     echo "Bash aliases already set up, skipping."
     return
   fi
-  echo 'source "$HOME/.dotfiles/bash_aliases/azure"'  >>"$filename"
-  echo 'source "$HOME/.dotfiles/bash_aliases/utils"'  >>"$filename"  
-  echo 'source "$HOME/.dotfiles/bash_aliases/devbox"' >>"$filename"
-  echo "export devboxRG=$devboxRG"                    >>"$filename"
+  echo 'source "$HOME/.dotfiles/bash_aliases/azure"'     >>"$filename"
+  echo 'source "$HOME/.dotfiles/bash_aliases/utils"'     >>"$filename"  
+  echo 'source "$HOME/.dotfiles/bash_aliases/devbox"'    >>"$filename"
+  echo 'source "$HOME/.dotfiles/bash_aliases/devbox-go"' >>"$filename"
+  echo "export devboxRG=$devboxRG"                       >>"$filename"
 
   echo "Bash aliases set up successfully. Log out and back in to apply changes, or source $filename"
 }

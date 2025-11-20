@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Create a temporary directory for GOCACHE to prevent the root partition from filling up
+export GOCACHE=/mnt/go-cache
+if [ ! -d "$GOCACHE" ]; then
+    sudo mkdir -p "$GOCACHE"
+    sudo chown azureuser:azureuser "$GOCACHE"
+fi
+
+# Add the latest Go toolchain bin directory to PATH
+GO_TOOLCHAIN_BIN="$(
+  printf '%s\n' "$HOME"/go/pkg/mod/golang.org/toolchain@*/bin \
+  2>/dev/null | sed '/\*/d' | sort -V | tail -n1
+)"
+if [ -n "$GO_TOOLCHAIN_BIN" ] && [[ ":$PATH:" != *":$GO_TOOLCHAIN_BIN:"* ]]; then
+  PATH="$GO_TOOLCHAIN_BIN:$PATH"
+fi
+
+# These environment variables configure Go to use private modules hosted on Azure DevOps
+export GOPRIVATE="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
+export GONOSUMDB="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
+export GONOPROXY="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
