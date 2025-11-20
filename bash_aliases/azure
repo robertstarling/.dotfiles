@@ -44,7 +44,7 @@ azure_login() {
       _azl_log "Fast path: valid token & correct subscription; no re-login needed.";
       return 0
     else
-      _azl_log "Token invalid/expired; re-authentication required.";
+      _azl_log "Token invalid/expired; re-authentication required."
     fi
   fi
 
@@ -82,7 +82,7 @@ azure_login() {
   echo "Azure CLI context set to subscription: $target_subscription (tenant: $target_tenant)"
 }
 
-# Search for Azure Resource Groups
+# Search for Azure Resource Groups by chaining contains filters.
 getrg() {
   local query="[]"
   for arg in "$@"; do
@@ -92,38 +92,50 @@ getrg() {
   az group list --query "$query.{Name:name, Location:location}" --output table
 }
 
-# Search for Simulator hosted resource groups
-function getsim() {
-    local first_pattern="$1"
-    local second_pattern_prefix="$2"
-
-    # Get resource groups matching the first pattern
-    local resource_groups=$(az group list --query "[?contains(name, 'robstarling') && contains(name, 'simdev')].name" --output tsv)
-    echo $resource_groups
-
-    for rg in $resource_groups; do
-      # Extract the unique identifier from the first pattern
-      local unique_id=$(echo $rg | grep -oP '(?<=simdev-)\d+')
-      echo $unique_id
-
-      # Construct the second pattern
-      local second_pattern="simdev-${unique_id}-cluster-1-HostedResources-"
-      echo $second_pattern
-
-      # Get resource groups matching the second pattern
-      az group list --query "[?contains(name, '$second_pattern')].{Name:name, Location:location}" --output table
-    done
-}
-
 # Check for resource groups matching 'robstarling*<optionalpattern>*-simdev-[0-9]*' and provide the user with an
-# interactive menu of matching resource group names, allowing them to select one to ssh into, using the sim_ssh function below.
-# The user can optionally provide a pattern to filter the resource groups further.
-# If there is only one choice, ssh into it directly.
-# If multiple choices, choose the most recent as the default (based on the build number suffix after simdev-)
+# interactive menu of matching resource group names, allowing them to select one for follow-up actions.
+# Flags:
+#   --ssh (default)   ssh into the simulator via sim_ssh
+#   --health          run sim_health for the selected simulator
+#   --help            display usage information
+# When multiple matches exist, results are shown newest-first but the default selection targets the oldest build.
 sim() {
-  local optionalFilter=$1
-  local rg_list
+  local action="ssh"
+  local optionalFilter=""
+  local usage_msg="Usage: sim [--ssh|--health|--help] [filter]\n\n  --ssh     ssh into the selected simulator (default)\n  --health  run sim_health for the selected simulator\n  --help    display this message\n  filter    optional substring to narrow RG names"
 
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --ssh)
+        action="ssh"
+        shift
+        ;;
+      --health)
+        action="health"
+        shift
+        ;;
+      --help|-h)
+        echo -e "$usage_msg"
+        return 0
+        ;;
+      --*)
+        echo "Unknown option: $1" >&2
+        echo -e "$usage_msg" >&2
+        return 1
+        ;;
+      *)
+        if [ -n "$optionalFilter" ]; then
+          echo "Only one filter argument is supported" >&2
+          echo -e "$usage_msg" >&2
+          return 1
+        fi
+        optionalFilter="$1"
+        shift
+        ;;
+    esac
+  done
+
+  local rg_list
   if ! rg_list=$(az group list --query "[?contains(name, 'robstarling') && contains(name, 'simdev')].name" --output tsv 2>/dev/null); then
     echo "Failed to retrieve Azure resource groups" >&2
     return 1
@@ -152,70 +164,82 @@ sim() {
     return 1
   fi
 
+  local selected_rg=""
   if [ "$count" -eq 1 ]; then
-    local build_id
-    build_id=$(echo "${candidates[0]}" | grep -oE '[0-9]+$')
-    if [ -z "$build_id" ]; then
-      echo "Unable to parse simdev build id from ${candidates[0]}" >&2
-      return 1
-    fi
-    sim_ssh "$build_id"
-    return $?
-  fi
-
-  local sorted_output
-  sorted_output=$(printf '%s\n' "${candidates[@]}" | awk '{
-      build=0
-      if (match($0, /simdev-([0-9]+)/, m)) { build=m[1] }
-      printf "%010d\t%s\n", build, $0
-    }' | sort -k1,1nr | cut -f2-)
-
-  mapfile -t candidates <<<"$sorted_output"
-  local last_index=$(( ${#candidates[@]} - 1 ))
-  local default_rg="${candidates[$last_index]}"
-  local default_position=$((last_index + 1))
-  local selection=""
-
-  if command -v fzf >/dev/null 2>&1; then
-    local fzf_opts=(
-      --prompt "Select simulator RG > "
-      --header "Enter accepts default (#${default_position})"
-      --height=40%
-      --reverse
-    )
-    selection=$(printf '%s\n' "${candidates[@]}" | fzf "${fzf_opts[@]}")
-    if [ -z "$selection" ]; then
-      echo "No selection made; defaulting to $default_rg"
-      selection="$default_rg"
-    fi
+    selected_rg="${candidates[0]}"
   else
-    echo "Multiple simulator resource groups found (default: oldest):"
-    local idx=1
-    for rg in "${candidates[@]}"; do
-      printf '  %d) %s\n' "$idx" "$rg"
-      idx=$((idx + 1))
-    done
-    printf 'Select target (default %d): ' "$default_position"
-    local reply
-    read -r reply
-    if [ -z "$reply" ]; then
-      selection="$default_rg"
-    elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "${#candidates[@]}" ]; then
-      local reply_index=$((reply - 1))
-      selection="${candidates[$reply_index]}"
+    local sorted_output
+    sorted_output=$(printf '%s\n' "${candidates[@]}" | awk '{
+        build=0
+        if (match($0, /simdev-([0-9]+)/, m)) { build=m[1] }
+        printf "%010d\t%s\n", build, $0
+      }' | sort -k1,1nr | cut -f2-)
+
+    mapfile -t candidates <<<"$sorted_output"
+    local last_index=$(( ${#candidates[@]} - 1 ))
+    local default_rg="${candidates[$last_index]}"
+    local default_position=$((last_index + 1))
+    local selection=""
+
+    if command -v fzf >/dev/null 2>&1; then
+      local fzf_opts=(
+        --prompt "Select simulator RG > "
+        --header "Enter accepts default (#${default_position})"
+        --height=40%
+        --reverse
+      )
+      selection=$(printf '%s\n' "${candidates[@]}" | fzf "${fzf_opts[@]}")
+      if [ -z "$selection" ]; then
+        echo "No selection made; defaulting to $default_rg"
+        selection="$default_rg"
+      fi
     else
-      echo "Invalid selection" >&2
-      return 1
+      echo "Multiple simulator resource groups found (default: oldest):"
+      local idx=1
+      for rg in "${candidates[@]}"; do
+        printf '  %d) %s\n' "$idx" "$rg"
+        idx=$((idx + 1))
+      done
+      printf 'Select target (default %d): ' "$default_position"
+      local reply
+      read -r reply
+      if [ -z "$reply" ]; then
+        selection="$default_rg"
+      elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "${#candidates[@]}" ]; then
+        local reply_index=$((reply - 1))
+        selection="${candidates[$reply_index]}"
+      else
+        echo "Invalid selection" >&2
+        return 1
+      fi
     fi
+
+    selected_rg="$selection"
   fi
 
   local build_id
-  build_id=$(echo "$selection" | grep -oE '[0-9]+$')
+  build_id=$(echo "$selected_rg" | grep -oE '[0-9]+$')
   if [ -z "$build_id" ]; then
-    echo "Unable to parse simdev build id from $selection" >&2
+    echo "Unable to parse simdev build id from $selected_rg" >&2
     return 1
   fi
-  sim_ssh "$build_id"
+
+  case "$action" in
+    ssh)
+      sim_ssh "$build_id"
+      ;;
+    health)
+      if ! type sim_health >/dev/null 2>&1; then
+        echo "sim_health function is not available in this shell" >&2
+        return 1
+      fi
+      sim_health "$build_id"
+      ;;
+    *)
+      echo "Unhandled action: $action" >&2
+      return 1
+      ;;
+  esac
 }
 
 # ssh to a simulator using only the build number, e.g.
