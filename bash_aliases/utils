@@ -4,8 +4,8 @@ export HISTFILESIZE=1000000 # 1 million
 
 # Recursive grep
 rr() {
-        echo grep -r "$1" --include="*$2" ./
-        grep -r "$1" --include="*$2" ./
+        echo grep -rI "$1" --include="*$2" ./
+        grep -rI "$1" --include="*$2" ./
 }
 
 # Function to set window title in Windows Terminal
