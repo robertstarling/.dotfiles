@@ -165,13 +165,15 @@ sim() {
     }' | sort -k1,1nr | cut -f2-)
 
   mapfile -t candidates <<<"$sorted_output"
-  local default_rg="${candidates[0]}"
+  local last_index=$(( ${#candidates[@]} - 1 ))
+  local default_rg="${candidates[$last_index]}"
+  local default_position=$((last_index + 1))
   local selection=""
 
   if command -v fzf >/dev/null 2>&1; then
     local fzf_opts=(
       --prompt "Select simulator RG > "
-      --header "Enter accepts default (${default_rg})"
+      --header "Enter accepts default (#${default_position})"
       --height=40%
       --reverse
     )
@@ -187,7 +189,7 @@ sim() {
       printf '  %d) %s\n' "$idx" "$rg"
       idx=$((idx + 1))
     done
-    printf 'Select target [default 1 - %s]: ' "$default_rg"
+    printf 'Select target (default %d): ' "$default_position"
     local reply
     read -r reply
     if [ -z "$reply" ]; then
