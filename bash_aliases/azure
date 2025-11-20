@@ -122,7 +122,86 @@ function getsim() {
 # If multiple choices, choose the most recent as the default (based on the build number suffix after simdev-)
 sim() {
   local optionalFilter=$1
-  # TODO
+  local rg_list
+
+  if ! rg_list=$(az group list --query "[?contains(name, 'robstarling') && contains(name, 'simdev')].name" --output tsv 2>/dev/null); then
+    echo "Failed to retrieve Azure resource groups" >&2
+    return 1
+  fi
+
+  local filter_lower=${optionalFilter,,}
+  local candidates=()
+  while IFS= read -r rg; do
+    [ -z "$rg" ] && continue
+    [[ $rg != robstarling* ]] && continue
+    [[ $rg =~ -simdev-[0-9]+$ ]] || continue
+    if [ -n "$filter_lower" ]; then
+      local rg_lower=${rg,,}
+      [[ $rg_lower == *"$filter_lower"* ]] || continue
+    fi
+    candidates+=("$rg")
+  done <<<"$rg_list"
+
+  local count=${#candidates[@]}
+  if [ "$count" -eq 0 ]; then
+    if [ -n "$optionalFilter" ]; then
+      echo "No simulator resource groups found matching filter '$optionalFilter'" >&2
+    else
+      echo "No simulator resource groups found" >&2
+    fi
+    return 1
+  fi
+
+  if [ "$count" -eq 1 ]; then
+    sim_ssh "${candidates[0]}"
+    return $?
+  fi
+
+  local sorted_output
+  sorted_output=$(printf '%s\n' "${candidates[@]}" | awk '{
+      build=0
+      if (match($0, /simdev-([0-9]+)/, m)) { build=m[1] }
+      printf "%010d\t%s\n", build, $0
+    }' | sort -k1,1nr | cut -f2-)
+
+  mapfile -t candidates <<<"$sorted_output"
+  local default_rg="${candidates[0]}"
+  local selection=""
+
+  if command -v fzf >/dev/null 2>&1; then
+    local fzf_opts=(
+      --prompt "Select simulator RG > "
+      --header "Enter accepts default (${default_rg})"
+      --height=40%
+      --reverse
+    )
+    selection=$(printf '%s\n' "${candidates[@]}" | fzf "${fzf_opts[@]}")
+    if [ -z "$selection" ]; then
+      echo "No selection made; defaulting to $default_rg"
+      selection="$default_rg"
+    fi
+  else
+    echo "Multiple simulator resource groups found (default is most recent):"
+    local idx=1
+    for rg in "${candidates[@]}"; do
+      printf '  %d) %s\n' "$idx" "$rg"
+      idx=$((idx + 1))
+    done
+    printf 'Select target [default 1 - %s]: ' "$default_rg"
+    local reply
+    read -r reply
+    if [ -z "$reply" ]; then
+      selection="$default_rg"
+    elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "${#candidates[@]}" ]; then
+      local reply_index=$((reply - 1))
+      selection="${candidates[$reply_index]}"
+    else
+      echo "Invalid selection" >&2
+      return 1
+    fi
+  fi
+
+  sim_ssh "$selection"
 }
 
 # ssh to simulator using the Resource Group name, e.g. 
