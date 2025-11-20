@@ -183,7 +183,7 @@ sim() {
       selection="$default_rg"
     fi
   else
-    echo "Multiple simulator resource groups found (default is most recent):"
+    echo "Multiple simulator resource groups found (default: oldest):"
     local idx=1
     for rg in "${candidates[@]}"; do
       printf '  %d) %s\n' "$idx" "$rg"
