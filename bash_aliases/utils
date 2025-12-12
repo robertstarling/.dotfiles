@@ -84,3 +84,6 @@ days_until_stale() {
         echo "0 days"
     fi
 }
+
+# This alias shows git branches sorted by last commit date, most recent first
+alias gb='git branch --sort=-committerdate --format="%(refname:short)|%(committerdate:iso8601)|%(objectname:short)|%(subject)" | column -t -s "|"'

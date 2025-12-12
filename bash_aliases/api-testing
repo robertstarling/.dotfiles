@@ -1,3 +1,11 @@
+# Useful overrides for API testing suites
+# - Re-using resource group names and skipping cleanup speeds up iterative testing
+# - The $$ variable in the ResourceGroup name ensures uniqueness per shell process
+declare -x ResourceGroup="robstarling-tmp-api-testing-$(date +%y%m-%d)-$$"
+declare -x SkipCleanupSuite=True
+declare -x RunInParallel=true
+declare -x RunInParallelArg="--procs=4"
+
 # Lookup the Azure resource ID of the first cluster containing the specific substring
 # Return an error if no matching cluster is found
 get_cluster_id() {
@@ -38,22 +46,24 @@ sim_health() {
   ClusterID=$(get_cluster_id_or_fail "$substring") || return 1
 
   # Ephemeral values (30-char date pattern kept as original intent).
-  local ResourceGroup="robstarling-tmp-api-testing-$(date +%y%m-%d)"
-  local RunInParallel=true
-  local SkipCleanupSuite=True
-  local Suites="cluster-health"
-  local Processors=4
-  local LabelFilter='!AzureLocalRackScale'
+  # local ResourceGroup="robstarling-tmp-api-testing-$$-$(date +%y%m-%d)"
+  # local RunInParallel=true
+  # local SkipCleanupSuite=True
+  # local Suites="cluster-health"
+  # local Processors=4
+  # These labels differentiate between deployment types:
+  # AzureLocalRackScale or AzureOperatorNexus
+  # local LabelFilter='!AzureLocalRackScale' 
 
   ( cd ~/nc-api-testing/ || exit 1
+    ClusterID="$ClusterID" Suites="cluster-health" ./scripts/run-suites.sh --label-filter "!AzureLocalRackScale"
     # Inline env assignment ensures variables apply only to this command.
-    ClusterID="$ClusterID" \
-    ResourceGroup="$ResourceGroup" \
-    RunInParallel="$RunInParallel" \
-    SkipCleanupSuite="$SkipCleanupSuite" \
-    Suites="$Suites" \
-    Processors="$Processors" \
-    LabelFilter="$LabelFilter" \
-      ./scripts/run-suites.sh --procs="$Processors" --label-filter "$LabelFilter"
+    # ClusterID="$ClusterID" \
+    # ResourceGroup="$ResourceGroup" \
+    # RunInParallel="$RunInParallel" \
+    # SkipCleanupSuite="$SkipCleanupSuite" \
+    # Processors="$Processors" \
+    # LabelFilter="$LabelFilter" \
+    #   ./scripts/run-suites.sh --label-filter "$LabelFilter" # --procs="$Processors" 
   )
 }
