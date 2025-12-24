@@ -10,6 +10,8 @@ export PATH="$PATH:$HOME/.local/bin"
 devboxRG="robstarling-2509"
 devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
 janitor $devboxRG $devboxSub
+echo "To extend Janitor TTL for $devboxRG $devboxSub:"
+echo "janitor_reset \$devboxRG \$devboxSub"
 
 # Reset janitor tag on the devbox resource group whenever we log into azure to prevent automated cleanup while the devbox is in use.
 alias azl='azure_login && janitor_reset $devboxRG $devboxSub'
