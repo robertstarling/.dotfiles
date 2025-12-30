@@ -17,6 +17,4 @@ if [ -n "$GO_TOOLCHAIN_BIN" ] && [[ ":$PATH:" != *":$GO_TOOLCHAIN_BIN:"* ]]; the
 fi
 
 # These environment variables configure Go to use private modules hosted on Azure DevOps
-export GOPRIVATE="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
-export GONOSUMDB="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
-export GONOPROXY="dev.azure.com,dev.azure.com/msazuredev,dev.azure.com/msazure,dev.azure.com/msazure/msk8s"
+export GOPRIVATE="dev.azure.com"
