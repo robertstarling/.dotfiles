@@ -92,19 +92,19 @@ getrg() {
   az group list --query "$query.{Name:name, Location:location}" --output table
 }
 
-# Check for resource groups matching 'robstarling*<optionalpattern>*-simdev-[0-9]*' and provide the user with an
-# interactive menu of matching resource group names, allowing them to select one for follow-up actions.
-# Interactive actions (prompted at runtime):
-#   1) ssh into the simulator via sim_ssh
-#   2) run sim_health for the selected simulator
+# Check for resource groups containing 'simdev' and the provided match pattern, and provide the user with an
+# interactive menu to select the desired simulator and action (e.g. ssh, extension update, run tests).
+#
 # Flags:
 #   --help            display usage information
+#
 # When multiple matches exist, results are shown newest-first but the default selection targets the oldest build.
 sim() {
   local action=""
-  local optionalFilter=""
+  local resourceGroupFilter=""
   local usage_msg="Usage: sim [--help] [filter]\n\n  --help    display this message\n  filter    optional substring to narrow RG names\n\nYou will be prompted to choose an action before selecting a simulator:\n  1) SSH into the selected simulator\n  2) Run sim_health for the selected simulator"
 
+  # Parse input arguments
   while [ $# -gt 0 ]; do
     case "$1" in
       --help|-h)
@@ -117,28 +117,34 @@ sim() {
         return 1
         ;;
       *)
-        if [ -n "$optionalFilter" ]; then
+        if [ -n "$resourceGroupFilter" ]; then
           echo "Only one filter argument is supported" >&2
           echo -e "$usage_msg" >&2
           return 1
         fi
-        optionalFilter="$1"
+        resourceGroupFilter="$1"
         shift
         ;;
     esac
   done
 
+  # Default to 'robstarling' if no optional filter string is provided
+  if [ -z "$resourceGroupFilter" ]; then
+    resourceGroupFilter="robstarling"
+  fi
+
+  # Retrieve list of sim resource groups containing 'simdev' and the supplied filter string
   local rg_list
-  if ! rg_list=$(az group list --query "[?contains(name, 'robstarling') && contains(name, 'simdev')].name" --output tsv 2>/dev/null); then
+  if ! rg_list=$(az group list --query "[?contains(name, '$resourceGroupFilter') && contains(name, 'simdev')].name" --output tsv 2>/dev/null); then
     echo "Failed to retrieve Azure resource groups" >&2
     return 1
   fi
 
-  local filter_lower=${optionalFilter,,}
+  local filter_lower=${resourceGroupFilter,,}
   local candidates=()
   while IFS= read -r rg; do
     [ -z "$rg" ] && continue
-    [[ $rg != robstarling* ]] && continue
+    # [[ $rg != robstarling* ]] && continue
     [[ $rg =~ -simdev-[0-9]+$ ]] || continue
     if [ -n "$filter_lower" ]; then
       local rg_lower=${rg,,}
@@ -149,14 +155,16 @@ sim() {
 
   local count=${#candidates[@]}
   if [ "$count" -eq 0 ]; then
-    if [ -n "$optionalFilter" ]; then
-      echo "No simulator resource groups found matching filter '$optionalFilter'" >&2
+    if [ -n "$resourceGroupFilter" ]; then
+      echo "No simulator resource groups found matching filter '$resourceGroupFilter'" >&2
     else
       echo "No simulator resource groups found" >&2
     fi
     return 1
   fi
+  echo "Found $count sim(s) matching '$resourceGroupFilter': ${candidates[0]}..."
 
+  # Ask user to select an action to perform
   while [ -z "$action" ]; do
     echo "Select simulator action:"
     echo "  1) SSH into simulator"
