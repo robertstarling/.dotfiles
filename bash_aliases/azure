@@ -94,26 +94,19 @@ getrg() {
 
 # Check for resource groups matching 'robstarling*<optionalpattern>*-simdev-[0-9]*' and provide the user with an
 # interactive menu of matching resource group names, allowing them to select one for follow-up actions.
+# Interactive actions (prompted at runtime):
+#   1) ssh into the simulator via sim_ssh
+#   2) run sim_health for the selected simulator
 # Flags:
-#   --ssh (default)   ssh into the simulator via sim_ssh
-#   --health          run sim_health for the selected simulator
 #   --help            display usage information
 # When multiple matches exist, results are shown newest-first but the default selection targets the oldest build.
 sim() {
-  local action="ssh"
+  local action=""
   local optionalFilter=""
-  local usage_msg="Usage: sim [--ssh|--health|--help] [filter]\n\n  --ssh     ssh into the selected simulator (default)\n  --health  run sim_health for the selected simulator\n  --help    display this message\n  filter    optional substring to narrow RG names"
+  local usage_msg="Usage: sim [--help] [filter]\n\n  --help    display this message\n  filter    optional substring to narrow RG names\n\nYou will be prompted to choose an action before selecting a simulator:\n  1) SSH into the selected simulator\n  2) Run sim_health for the selected simulator"
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      --ssh)
-        action="ssh"
-        shift
-        ;;
-      --health)
-        action="health"
-        shift
-        ;;
       --help|-h)
         echo -e "$usage_msg"
         return 0
@@ -163,6 +156,30 @@ sim() {
     fi
     return 1
   fi
+
+  while [ -z "$action" ]; do
+    echo "Select simulator action:"
+    echo "  1) SSH into simulator"
+    echo "  2) Run cluster-health API tests"
+    local action_reply=""
+    printf 'Choice [1]: '
+    if ! read -r action_reply; then
+      echo
+      action="ssh"
+      break
+    fi
+    case "$action_reply" in
+      ""|"1")
+        action="ssh"
+        ;;
+      "2")
+        action="health"
+        ;;
+      *)
+        echo "Invalid selection. Enter 1 or 2." >&2
+        ;;
+    esac
+  done
 
   local selected_rg=""
   if [ "$count" -eq 1 ]; then
