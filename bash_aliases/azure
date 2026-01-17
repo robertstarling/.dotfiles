@@ -94,6 +94,10 @@ getrg() {
 
 # Check for resource groups containing 'simdev' and the provided match pattern, and provide the user with an
 # interactive menu to select the desired simulator and action (e.g. ssh, extension update, run tests).
+# Interactive actions:
+#   1) SSH into the simulator via sim_ssh
+#   2) Run cluster-health API tests via sim_health
+#   3) Update nc-platform-underlay-extension to a target version
 #
 # Flags:
 #   --help            display usage information
@@ -102,7 +106,7 @@ getrg() {
 sim() {
   local action=""
   local resourceGroupFilter=""
-  local usage_msg="Usage: sim [--help] [filter]\n\n  --help    display this message\n  filter    optional substring to narrow RG names\n\nYou will be prompted to choose an action before selecting a simulator:\n  1) SSH into the selected simulator\n  2) Run sim_health for the selected simulator"
+  local usage_msg="Usage: sim [--help] [filter]\n\n  --help    display this message\n  filter    optional substring to narrow RG names\n\nYou will be prompted to choose an action before selecting a simulator:\n  1) SSH into the selected simulator\n  2) Run cluster-health API tests\n  3) Update nc-platform-underlay-extension"
 
   # Parse input arguments
   while [ $# -gt 0 ]; do
@@ -169,6 +173,7 @@ sim() {
     echo "Select simulator action:"
     echo "  1) SSH into simulator"
     echo "  2) Run cluster-health API tests"
+    echo "  3) Update nc-platform-underlay-extension"
     local action_reply=""
     printf 'Choice [1]: '
     if ! read -r action_reply; then
@@ -183,8 +188,11 @@ sim() {
       "2")
         action="health"
         ;;
+      "3")
+        action="update_extension"
+        ;;
       *)
-        echo "Invalid selection. Enter 1 or 2." >&2
+        echo "Invalid selection. Enter 1, 2, or 3." >&2
         ;;
     esac
   done
@@ -259,6 +267,70 @@ sim() {
         return 1
       fi
       sim_health "$build_id"
+      ;;
+    update_extension)
+      local target_version=""
+      while [ -z "$target_version" ]; do
+        printf 'Enter target nc-platform-underlay-extension version (e.g. 10.0.0-pr1538): '
+        if ! read -r target_version; then
+          echo
+          echo "Extension update aborted (no version provided)." >&2
+          return 1
+        fi
+        target_version="${target_version//[[:space:]]/}"
+        if [ -z "$target_version" ]; then
+          echo "Version cannot be empty." >&2
+        fi
+      done
+
+      local hosted_rg=""
+      local hosted_candidates
+      if ! hosted_candidates=$(az group list --query "[?contains(name, 'simdev-${build_id}-cluster-1-HostedResources-')].name" --output tsv 2>/dev/null); then
+        echo "Failed to retrieve HostedResources groups" >&2
+        return 1
+      fi
+      while IFS= read -r rg; do
+        [ -z "$rg" ] && continue
+        [[ $rg == simdev-${build_id}-cluster-1-HostedResources-* ]] || continue
+        hosted_rg="$rg"
+        break
+      done <<<"$hosted_candidates"
+
+      if [ -z "$hosted_rg" ]; then
+        echo "Unable to locate HostedResources group for build ${build_id}" >&2
+        return 1
+      fi
+
+      local cluster_name="${hosted_rg%-HostedResources-*}"
+      local NC_PLATFORM_EXTENSION="$target_version"
+      local command_preview="az k8s-extension update --name nc-platform-underlay-extension --resource-group ${hosted_rg} --cluster-name ${cluster_name} --cluster-type connectedClusters --version ${NC_PLATFORM_EXTENSION} --auto-upgrade false --release-train sandbox"
+
+      echo
+      echo "Run the following command? (Y/N)"
+      echo "  $command_preview"
+      printf 'Proceed? [Y]: '
+      local confirm=""
+      if ! read -r confirm; then
+        echo
+        confirm="y"
+      fi
+      [ -z "$confirm" ] && confirm="y"
+
+      if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        if ! az k8s-extension update \
+          --name nc-platform-underlay-extension \
+          --resource-group "$hosted_rg" \
+          --cluster-name "$cluster_name" \
+          --cluster-type connectedClusters \
+          --version "$NC_PLATFORM_EXTENSION" \
+          --auto-upgrade false \
+          --release-train sandbox; then
+          echo "nc-platform-underlay-extension update failed." >&2
+          return 1
+        fi
+      else
+        echo "nc-platform-underlay-extension update skipped."
+      fi
       ;;
     *)
       echo "Unhandled action: $action" >&2
