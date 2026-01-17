@@ -1,5 +1,5 @@
 # Increase bash history size
-export HISTSIZE=10000
+export HISTSIZE=1000000     # 1 million
 export HISTFILESIZE=1000000 # 1 million
 
 # Append-on-every-command with immediate flush to ensure all history is preserved across multiple concurrent sessions
