@@ -98,6 +98,7 @@ getrg() {
 #   1) SSH into the simulator via sim_ssh
 #   2) Run cluster-health API tests via sim_health
 #   3) Update nc-platform-underlay-extension to a target version
+#   4) List matching simulator resource groups + Janitor TTL (with optional weekly extend)
 #
 # Flags:
 #   --help            display usage information
@@ -106,7 +107,7 @@ getrg() {
 sim() {
   local action=""
   local resourceGroupFilter=""
-  local usage_msg="Usage: sim [--help] [filter]\n\n  --help    display this message\n  filter    optional substring to narrow RG names\n\nYou will be prompted to choose an action before selecting a simulator:\n  1) SSH into the selected simulator\n  2) Run cluster-health API tests\n  3) Update nc-platform-underlay-extension\n  4) List matching simulator resource groups"
+  local usage_msg="Usage: sim [--help] [filter]\n\n  --help    display this message\n  filter    optional substring to narrow RG names\n\nYou will be prompted to choose an action before selecting a simulator:\n  1) SSH into the selected simulator\n  2) Run cluster-health API tests\n  3) Update nc-platform-underlay-extension\n  4) List matching simulator resource groups + Janitor TTL (with optional weekly extend)"
 
   # Parse input arguments
   while [ $# -gt 0 ]; do
@@ -188,7 +189,7 @@ sim() {
     echo "  1) SSH into simulator"
     echo "  2) Run cluster-health API tests"
     echo "  3) Update nc-platform-underlay-extension"
-    echo "  4) List matches ('$resourceGroupFilter')"
+    echo "  4) List/extend Janitor TTL ('$resourceGroupFilter')"
     echo "  0) Exit"
     local action_reply=""
     printf 'Choice [0]: '
@@ -219,17 +220,60 @@ sim() {
   if [ "$action" = "list" ]; then
     echo
     echo "Listing $count simulator resource group(s) matching '$resourceGroupFilter':"
+    local idx=1
     for rg in "${sorted_candidates[@]}"; do
       local janitor_output=""
       janitor_output=$(janitor "$rg" 2>&1 || true)
       local last_line
       last_line=$(echo "$janitor_output" | tail -n 1)
       if [ -n "$last_line" ]; then
-        echo "$rg: $last_line"
+        echo "  $idx) $rg: $last_line"
       else
-        echo "$rg: <no janitor output>"
+        echo "  $idx) $rg: <no janitor output>"
       fi
+      idx=$((idx + 1))
     done
+
+    echo
+    printf 'Enter #/name (blank to return) to extend TTL weekly: '
+    local ttl_choice=""
+    read -r ttl_choice
+    ttl_choice=${ttl_choice//[[:space:]]/}
+    if [ -z "$ttl_choice" ]; then
+      return 0
+    fi
+
+    local ttl_target=""
+    if [[ "$ttl_choice" =~ ^[0-9]+$ ]]; then
+      local choice_num=$((10#$ttl_choice))
+      if [ "$choice_num" -ge 1 ] && [ "$choice_num" -le "${#sorted_candidates[@]}" ]; then
+        local choice_index=$((choice_num - 1))
+        ttl_target="${sorted_candidates[$choice_index]}"
+      else
+        echo "Selection $ttl_choice out of range; no changes made."
+        return 0
+      fi
+    else
+      for rg in "${sorted_candidates[@]}"; do
+        if [ "$rg" = "$ttl_choice" ]; then
+          ttl_target="$rg"
+          break
+        fi
+      done
+
+      if [ -z "$ttl_target" ]; then
+        echo "RG '$ttl_choice' not in filtered list; no changes made."
+        return 0
+      fi
+    fi
+
+    echo "Extending Janitor TTL (weekly) for $ttl_target ..."
+    if janitor_reset -g "$ttl_target" -f weekly; then
+      echo "Janitor TTL updated for $ttl_target"
+    else
+      echo "Failed to update Janitor TTL for $ttl_target" >&2
+      return 1
+    fi
     return 0
   fi
 
@@ -481,8 +525,7 @@ janitor() {
   fi
 
   if [ -z "$created" ]; then
-    echo "No valid 'Created' tag found resource group: $__resource_group" >&2
-    echo "> 1 day remaining"
+    echo "> 1 day remaining (No valid 'Created' tag)"
     return 1
   fi
 
@@ -497,9 +540,8 @@ janitor() {
       ttl_days=30
       ;;
     never|""|*)
-      echo "No valid 'CreatedCleanupFrequency' tag for resource group: $__resource_group" >&2
-      echo "> 1 day remaining"
-      return 2
+      echo "> 1 day remaining (No valid 'CleanupFrequency' tag: '$cleanup_frequency')"
+      return 3
       ;;
   esac
 
@@ -509,36 +551,103 @@ janitor() {
     echo "$remaining remaining"
   else
     echo "Error computing staleness for resource group: $__resource_group" >&2
-    return 3
+    return 4
   fi
 }
 
 # azure_rg_reset_created_tag updates an Azure resource group's "Created" tag,
-# which is used by the Janitor to determine when to clean up the resource group.
+# optionally overriding CleanupFrequency, to influence the Janitor cleanup window.
 #
 # Usage:
-#   azure_rg_reset_created_tag RESOURCE_GROUP SUBSCRIPTION
+#   janitor_reset                         # defaults to $devboxRG / $devboxSub
+#   janitor_reset -g RG [-s SUB] [-f FREQ]
 janitor_reset() {
-  local __resource_group="$1"
-  local __subscription="$2"
   local __ts=$(date +%Y-%m-%dT%H:%M:%SZ)
+  local __resource_group=""
+  local __subscription=""
+  local __frequency=""
+  local __arg_count=$#
 
-  # Specify subscription only if provided in the parameters. Otherwise az will use the current one.
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -h|--help)
+        echo "Usage: janitor_reset [-g RESOURCE_GROUP] [-s SUBSCRIPTION] [-f FREQUENCY]"
+        echo
+        echo "  -g RESOURCE_GROUP   Name of the Azure resource group to update"
+        echo "  -s SUBSCRIPTION     (Optional) Subscription ID containing the resource group"
+        echo "  -f FREQUENCY        (Optional) Cleanup frequency: daily, weekly, monthly, never"
+        return 0
+        ;;
+      -g)
+        if [ -z "${2:-}" ]; then
+          echo "janitor_reset: -g requires a resource group" >&2
+          return 1
+        fi
+        __resource_group="$2"
+        shift 2
+        ;;
+      -s)
+        if [ -z "${2:-}" ]; then
+          echo "janitor_reset: -s requires a subscription id" >&2
+          return 1
+        fi
+        __subscription="$2"
+        shift 2
+        ;;
+      -f)
+        if [ -z "${2:-}" ]; then
+          echo "janitor_reset: -f requires a frequency" >&2
+          return 1
+        fi
+        __frequency="$2"
+        shift 2
+        ;;
+      -* )
+        echo "janitor_reset: unknown option '$1'" >&2
+        return 1
+        ;;
+      *)
+        echo "janitor_reset: unexpected argument '$1'" >&2
+        return 1
+        ;;
+    esac
+  done
+
+  if [ "$__arg_count" -eq 0 ]; then
+    if [ -z "${devboxRG:-}" ] || [ -z "${devboxSub:-}" ]; then
+      echo "janitor_reset: resource group must be specified via -g or set \$devboxRG and \$devboxSub" >&2
+      return 1
+    fi
+    __resource_group="$devboxRG"
+    __subscription="$devboxSub"
+  else
+    if [ -z "$__resource_group" ]; then
+      echo "janitor_reset: resource group must be specified via -g" >&2
+      return 1
+    fi
+  fi
+
   local subscription_args=()
   if [ -n "${__subscription:-}" ]; then
     subscription_args=(--subscription "$__subscription")
   fi
 
-  # Read existing tags as JSON (null if none), then merge/overwrite the Created/CleanupFrequency/Owner keys.
   local existing_tags_json
   existing_tags_json=$(az group show "${subscription_args[@]}" --name "$__resource_group" --query tags -o json 2>/dev/null || echo null)
 
   local new_tags_json
   new_tags_json=$(echo "$existing_tags_json" | jq --arg ts "$__ts" '. // {} | .Created=$ts')
 
-  # Convert merged tags JSON into key=value pairs for the --tags arg.
+  if [ -n "$__frequency" ]; then
+    local __frequency_normalized="${__frequency,,}"
+    new_tags_json=$(echo "$new_tags_json" | jq --arg freq "$__frequency_normalized" '.CleanupFrequency=$freq')
+  fi
+
   local tags_kv
   IFS=$'\n' read -r -d '' -a tags_kv < <(echo "$new_tags_json" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' && printf '\0')
 
   az group update "${subscription_args[@]}" --name "$__resource_group" --tags "${tags_kv[@]}" --only-show-errors >/dev/null
+
+  # Call janitor to show updated TTL
+  janitor "$__resource_group" "$__subscription"
 }
