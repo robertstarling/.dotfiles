@@ -269,19 +269,7 @@ sim() {
       sim_health "$build_id"
       ;;
     update_extension)
-      local target_version=""
-      while [ -z "$target_version" ]; do
-        printf 'Enter target nc-platform-underlay-extension version (e.g. 10.0.0-pr1538): '
-        if ! read -r target_version; then
-          echo
-          echo "Extension update aborted (no version provided)." >&2
-          return 1
-        fi
-        target_version="${target_version//[[:space:]]/}"
-        if [ -z "$target_version" ]; then
-          echo "Version cannot be empty." >&2
-        fi
-      done
+      echo "Looking up current nc-platform-underlay-extension version for simdev-${build_id}..."
 
       local hosted_rg=""
       local hosted_candidates
@@ -302,6 +290,36 @@ sim() {
       fi
 
       local cluster_name="${hosted_rg%-HostedResources-*}"
+      local current_version=""
+      if current_version=$(az k8s-extension show \
+          --name nc-platform-underlay-extension \
+          --resource-group "$hosted_rg" \
+          --cluster-name "$cluster_name" \
+          --cluster-type connectedClusters \
+          --query version -o tsv 2>/dev/null); then
+        if [ -n "$current_version" ]; then
+          echo "Current nc-platform-underlay-extension version: $current_version"
+        else
+          echo "Current nc-platform-underlay-extension version: <unknown> (empty response)"
+        fi
+      else
+        echo "Warning: unable to determine current nc-platform-underlay-extension version" >&2
+      fi
+
+      local target_version=""
+      while [ -z "$target_version" ]; do
+        printf 'Enter target nc-platform-underlay-extension version: '
+        if ! read -r target_version; then
+          echo
+          echo "Extension update aborted (no version provided)." >&2
+          return 1
+        fi
+        target_version="${target_version//[[:space:]]/}"
+        if [ -z "$target_version" ]; then
+          echo "Version cannot be empty." >&2
+        fi
+      done
+
       local NC_PLATFORM_EXTENSION="$target_version"
       local command_preview="az k8s-extension update --name nc-platform-underlay-extension --resource-group ${hosted_rg} --cluster-name ${cluster_name} --cluster-type connectedClusters --version ${NC_PLATFORM_EXTENSION} --auto-upgrade false --release-train sandbox"
 
