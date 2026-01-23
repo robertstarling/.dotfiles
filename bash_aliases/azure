@@ -442,23 +442,47 @@ janitor() {
 
   echo "$tags_json"
 
-  # Parse the Created tag if present, and display the number of days remaining until stale
-  local created=""
+  # Parse Created/CleanupFrequency tags to compute the TTL for days_until_stale
+  local created="" cleanup_frequency="" ttl_days=1
   if command -v jq >/dev/null 2>&1; then
     created=$(echo "$tags_json" | jq -r '.Created // empty')
+    cleanup_frequency=$(echo "$tags_json" | jq -r '.CleanupFrequency // empty')
   else
     created=$(echo "$tags_json" | grep -o '"Created"[^"]*"[^"]*"' | sed -E 's/.*"Created" *: *"([^"]*)".*/\1/')
+    cleanup_frequency=$(echo "$tags_json" | grep -o '"CleanupFrequency"[^"]*"[^"]*"' | sed -E 's/.*"CleanupFrequency" *: *"([^"]*)".*/\1/' || true)
   fi
 
-  if [ -n "$created" ]; then
-    if command -v days_until_stale >/dev/null 2>&1; then
-      local remaining
-      remaining=$(days_until_stale "$created" 30 2>/dev/null || true)
-      [ -n "$remaining" ] && echo "$remaining remaining"
-    else
-      echo "Created: $created"
-    fi
-  fi  
+  if [ -z "$created" ]; then
+    echo "No valid 'Created' tag found resource group: $__resource_group" >&2
+    echo "> 1 day remaining"
+    return 1
+  fi
+
+  case "${cleanup_frequency,,}" in
+    daily)
+      ttl_days=1
+      ;;
+    weekly)
+      ttl_days=7
+      ;;
+    monthly)
+      ttl_days=30
+      ;;
+    never|""|*)
+      echo "No valid 'CreatedCleanupFrequency' tag for resource group: $__resource_group" >&2
+      echo "> 1 day remaining"
+      return 2
+      ;;
+  esac
+
+  local remaining
+  remaining=$(days_until_stale "$created" "$ttl_days" 2>/dev/null || true)
+  if [ -n "$remaining" ]; then
+    echo "$remaining remaining"
+  else
+    echo "Error computing staleness for resource group: $__resource_group" >&2
+    return 3
+  fi
 }
 
 # azure_rg_reset_created_tag updates an Azure resource group's "Created" tag,
