@@ -106,7 +106,7 @@ getrg() {
 sim() {
   local action=""
   local resourceGroupFilter=""
-  local usage_msg="Usage: sim [--help] [filter]\n\n  --help    display this message\n  filter    optional substring to narrow RG names\n\nYou will be prompted to choose an action before selecting a simulator:\n  1) SSH into the selected simulator\n  2) Run cluster-health API tests\n  3) Update nc-platform-underlay-extension"
+  local usage_msg="Usage: sim [--help] [filter]\n\n  --help    display this message\n  filter    optional substring to narrow RG names\n\nYou will be prompted to choose an action before selecting a simulator:\n  1) SSH into the selected simulator\n  2) Run cluster-health API tests\n  3) Update nc-platform-underlay-extension\n  4) List matching simulator resource groups"
 
   # Parse input arguments
   while [ $# -gt 0 ]; do
@@ -168,12 +168,24 @@ sim() {
   fi
   echo "Found $count sim(s) matching '$resourceGroupFilter': ${candidates[0]}..."
 
+  local sorted_candidates=("${candidates[@]}")
+  if [ "$count" -gt 1 ]; then
+    local sorted_output
+    sorted_output=$(printf '%s\n' "${sorted_candidates[@]}" | awk '{
+        build=0
+        if (match($0, /simdev-([0-9]+)/, m)) { build=m[1] }
+        printf "%010d\t%s\n", build, $0
+      }' | sort -k1,1nr | cut -f2-)
+    mapfile -t sorted_candidates <<<"$sorted_output"
+  fi
+
   # Ask user to select an action to perform
   while [ -z "$action" ]; do
     echo "Select simulator action:"
     echo "  1) SSH into simulator"
     echo "  2) Run cluster-health API tests"
     echo "  3) Update nc-platform-underlay-extension"
+    echo "  4) List matching simulator resource groups"
     local action_reply=""
     printf 'Choice [1]: '
     if ! read -r action_reply; then
@@ -191,26 +203,38 @@ sim() {
       "3")
         action="update_extension"
         ;;
+      "4")
+        action="list"
+        ;;
       *)
-        echo "Invalid selection. Enter 1, 2, or 3." >&2
+        echo "Invalid selection. Enter 1, 2, 3, or 4." >&2
         ;;
     esac
   done
 
+  if [ "$action" = "list" ]; then
+    echo
+    echo "Listing $count simulator resource group(s) matching '$resourceGroupFilter':"
+    for rg in "${sorted_candidates[@]}"; do
+      local janitor_output=""
+      janitor_output=$(janitor "$rg" 2>&1 || true)
+      local last_line
+      last_line=$(echo "$janitor_output" | tail -n 1)
+      if [ -n "$last_line" ]; then
+        echo "$rg: $last_line"
+      else
+        echo "$rg: <no janitor output>"
+      fi
+    done
+    return 0
+  fi
+
   local selected_rg=""
   if [ "$count" -eq 1 ]; then
-    selected_rg="${candidates[0]}"
+    selected_rg="${sorted_candidates[0]}"
   else
-    local sorted_output
-    sorted_output=$(printf '%s\n' "${candidates[@]}" | awk '{
-        build=0
-        if (match($0, /simdev-([0-9]+)/, m)) { build=m[1] }
-        printf "%010d\t%s\n", build, $0
-      }' | sort -k1,1nr | cut -f2-)
-
-    mapfile -t candidates <<<"$sorted_output"
-    local last_index=$(( ${#candidates[@]} - 1 ))
-    local default_rg="${candidates[$last_index]}"
+    local last_index=$(( ${#sorted_candidates[@]} - 1 ))
+    local default_rg="${sorted_candidates[$last_index]}"
     local default_position=$((last_index + 1))
     local selection=""
 
@@ -221,7 +245,7 @@ sim() {
         --height=40%
         --reverse
       )
-      selection=$(printf '%s\n' "${candidates[@]}" | fzf "${fzf_opts[@]}")
+      selection=$(printf '%s\n' "${sorted_candidates[@]}" | fzf "${fzf_opts[@]}")
       if [ -z "$selection" ]; then
         echo "No selection made; defaulting to $default_rg"
         selection="$default_rg"
@@ -229,7 +253,7 @@ sim() {
     else
       echo "Multiple simulator resource groups found (default: oldest):"
       local idx=1
-      for rg in "${candidates[@]}"; do
+      for rg in "${sorted_candidates[@]}"; do
         printf '  %d) %s\n' "$idx" "$rg"
         idx=$((idx + 1))
       done
@@ -238,9 +262,9 @@ sim() {
       read -r reply
       if [ -z "$reply" ]; then
         selection="$default_rg"
-      elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "${#candidates[@]}" ]; then
+      elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "${#sorted_candidates[@]}" ]; then
         local reply_index=$((reply - 1))
-        selection="${candidates[$reply_index]}"
+        selection="${sorted_candidates[$reply_index]}"
       else
         echo "Invalid selection" >&2
         return 1
