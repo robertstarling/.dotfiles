@@ -73,11 +73,10 @@ days_until_stale() {
 
     if [ $remaining_days -gt 1 ]; then
         echo "$remaining_days days"
-    elif [ $remaining_days -eq 1 ]; then
-        echo "1 day"
     else
         # less than 1 day but still positive
-        echo "0 days"
+        local remaining_hours=$(( remaining_seconds / 3600 ))
+        echo "$remaining_hours hours"
     fi
 }
 
