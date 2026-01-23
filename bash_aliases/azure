@@ -158,15 +158,19 @@ sim() {
   done <<<"$rg_list"
 
   local count=${#candidates[@]}
-  if [ "$count" -eq 0 ]; then
-    if [ -n "$resourceGroupFilter" ]; then
+
+  case "$count" in
+    0)
       echo "No simulator resource groups found matching filter '$resourceGroupFilter'" >&2
-    else
-      echo "No simulator resource groups found" >&2
-    fi
-    return 1
-  fi
-  echo "Found $count sim(s) matching '$resourceGroupFilter': ${candidates[0]}..."
+      return 1
+      ;;
+    1)
+      echo "${candidates[0]}:"
+      ;;
+    *)
+      echo "${candidates[0]}... (and $((count - 1)) more):"
+      ;;
+  esac
 
   local sorted_candidates=("${candidates[@]}")
   if [ "$count" -gt 1 ]; then
@@ -181,20 +185,20 @@ sim() {
 
   # Ask user to select an action to perform
   while [ -z "$action" ]; do
-    echo "Select simulator action:"
     echo "  1) SSH into simulator"
     echo "  2) Run cluster-health API tests"
     echo "  3) Update nc-platform-underlay-extension"
-    echo "  4) List matching simulator resource groups"
+    echo "  4) List matches ('$resourceGroupFilter')"
+    echo "  0) Exit"
     local action_reply=""
-    printf 'Choice [1]: '
+    printf 'Choice [0]: '
     if ! read -r action_reply; then
       echo
       action="ssh"
       break
     fi
     case "$action_reply" in
-      ""|"1")
+      "1")
         action="ssh"
         ;;
       "2")
@@ -206,8 +210,8 @@ sim() {
       "4")
         action="list"
         ;;
-      *)
-        echo "Invalid selection. Enter 1, 2, 3, or 4." >&2
+      "0"|""|*)
+        return 0
         ;;
     esac
   done
