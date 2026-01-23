@@ -169,7 +169,7 @@ sim() {
       echo "${candidates[0]}:"
       ;;
     *)
-      echo "${candidates[0]}... (and $((count - 1)) more):"
+      echo "${candidates[0]}... (and $((count - 1)) more for '$resourceGroupFilter'):"
       ;;
   esac
 
@@ -188,8 +188,8 @@ sim() {
   while [ -z "$action" ]; do
     echo "  1) SSH into simulator"
     echo "  2) Run cluster-health API tests"
-    echo "  3) Update nc-platform-underlay-extension"
-    echo "  4) List/extend Janitor TTL ('$resourceGroupFilter')"
+    echo "  3) List/update nc-platform-underlay-extension"
+    echo "  4) List/extend Janitor TTL"
     echo "  0) Exit"
     local action_reply=""
     printf 'Choice [0]: '
@@ -278,48 +278,131 @@ sim() {
   fi
 
   local selected_rg=""
-  if [ "$count" -eq 1 ]; then
-    selected_rg="${sorted_candidates[0]}"
-  else
-    local last_index=$(( ${#sorted_candidates[@]} - 1 ))
-    local default_rg="${sorted_candidates[$last_index]}"
-    local default_position=$((last_index + 1))
-    local selection=""
 
-    if command -v fzf >/dev/null 2>&1; then
-      local fzf_opts=(
-        --prompt "Select simulator RG > "
-        --header "Enter accepts default (#${default_position})"
-        --height=40%
-        --reverse
-      )
-      selection=$(printf '%s\n' "${sorted_candidates[@]}" | fzf "${fzf_opts[@]}")
-      if [ -z "$selection" ]; then
-        echo "No selection made; defaulting to $default_rg"
-        selection="$default_rg"
-      fi
-    else
-      echo "Multiple simulator resource groups found (default: oldest):"
-      local idx=1
-      for rg in "${sorted_candidates[@]}"; do
-        printf '  %d) %s\n' "$idx" "$rg"
-        idx=$((idx + 1))
-      done
-      printf 'Select target (default %d): ' "$default_position"
-      local reply
-      read -r reply
-      if [ -z "$reply" ]; then
-        selection="$default_rg"
-      elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "${#sorted_candidates[@]}" ]; then
-        local reply_index=$((reply - 1))
-        selection="${sorted_candidates[$reply_index]}"
+  if [ "$action" = "update_extension" ]; then
+    echo
+    echo "Current nc-platform-underlay-extension versions:"
+    local idx=1
+    for rg in "${sorted_candidates[@]}"; do
+      local version_display="<unknown>"
+      local build_id
+      build_id=$(echo "$rg" | grep -oE '[0-9]+$' || true)
+      if [ -n "$build_id" ]; then
+        local hosted_rg=""
+        local hosted_candidates
+        if hosted_candidates=$(az group list --query "[?contains(name, 'simdev-${build_id}-cluster-1-HostedResources-')].name" --output tsv 2>/dev/null); then
+          while IFS= read -r host_rg; do
+            [ -z "$host_rg" ] && continue
+            [[ $host_rg == simdev-${build_id}-cluster-1-HostedResources-* ]] || continue
+            hosted_rg="$host_rg"
+            break
+          done <<<"$hosted_candidates"
+        fi
+
+        if [ -n "$hosted_rg" ]; then
+          local cluster_name="${hosted_rg%-HostedResources-*}"
+          local current_version
+          if current_version=$(az k8s-extension show \
+              --name nc-platform-underlay-extension \
+              --resource-group "$hosted_rg" \
+              --cluster-name "$cluster_name" \
+              --cluster-type connectedClusters \
+              --query version -o tsv 2>/dev/null); then
+            if [ -n "$current_version" ]; then
+              version_display="$current_version"
+            else
+              version_display="<empty response>"
+            fi
+          else
+            version_display="<lookup failed>"
+          fi
+        else
+          version_display="<missing HostedResources>"
+        fi
       else
-        echo "Invalid selection" >&2
-        return 1
+        version_display="<invalid build id>"
       fi
+
+      echo "  $idx) $rg: $version_display"
+      idx=$((idx + 1))
+    done
+
+    echo
+    printf 'Enter #/name (blank to return) to update extension: '
+    local ext_choice=""
+    read -r ext_choice
+    ext_choice=${ext_choice//[[:space:]]/}
+    if [ -z "$ext_choice" ]; then
+      return 0
     fi
 
-    selected_rg="$selection"
+    if [[ "$ext_choice" =~ ^[0-9]+$ ]]; then
+      local choice_num=$((10#$ext_choice))
+      if [ "$choice_num" -ge 1 ] && [ "$choice_num" -le "${#sorted_candidates[@]}" ]; then
+        local choice_index=$((choice_num - 1))
+        selected_rg="${sorted_candidates[$choice_index]}"
+      else
+        echo "Selection $ext_choice out of range; no changes made."
+        return 0
+      fi
+    else
+      for rg in "${sorted_candidates[@]}"; do
+        if [ "$rg" = "$ext_choice" ]; then
+          selected_rg="$rg"
+          break
+        fi
+      done
+      if [ -z "$selected_rg" ]; then
+        echo "RG '$ext_choice' not in filtered list; no changes made."
+        return 0
+      fi
+    fi
+  fi
+
+  if [ -z "$selected_rg" ]; then
+    if [ "$count" -eq 1 ]; then
+      selected_rg="${sorted_candidates[0]}"
+    else
+      local last_index=$(( ${#sorted_candidates[@]} - 1 ))
+      local default_rg="${sorted_candidates[$last_index]}"
+      local default_position=$((last_index + 1))
+      local selection=""
+
+      if command -v fzf >/dev/null 2>&1; then
+        local fzf_opts=(
+          --prompt "Select simulator RG > "
+          --header "Enter accepts default (#${default_position})"
+          --height=40%
+          --reverse
+        )
+        selection=$(printf '%s\n' "${sorted_candidates[@]}" | fzf "${fzf_opts[@]}")
+        if [ -z "$selection" ]; then
+          echo "No selection made; defaulting to $default_rg"
+          selection="$default_rg"
+        fi
+      else
+        echo "Multiple simulator resource groups found (default: oldest):"
+        local idx=1
+        for rg in "${sorted_candidates[@]}"; do
+          printf '  %d) %s\n' "$idx" "$rg"
+          idx=$((idx + 1))
+        done
+        printf 'Select target (default %d): ' "$default_position"
+        local reply
+        read -r reply
+        if [ -z "$reply" ]; then
+          selection="$default_rg"
+        elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "${#sorted_candidates[@]}" ]; then
+          local reply_index=$((reply - 1))
+          selection="${sorted_candidates[$reply_index]}"
+        else
+          echo "Invalid selection" >&2
+          return 1
+        fi
+      fi
+
+      selected_rg="$selection"
+    fi
   fi
 
   local build_id
