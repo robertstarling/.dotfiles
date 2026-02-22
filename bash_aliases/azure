@@ -531,7 +531,7 @@ sim_ssh() {
 
   while IFS= read -r rg; do
     [ -z "$rg" ] && continue
-    [[ $rg == *"-simdev-${build_id}"* ]] || continue
+    [[ $rg == *"id-simdev-${build_id}"* ]] || continue
     target_rg="$rg"
     break
   done <<<"$rg_candidates"
