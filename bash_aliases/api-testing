@@ -45,6 +45,36 @@ sim_health() {
   local ClusterID
   ClusterID=$(get_cluster_id_or_fail "$substring") || return 1
 
+  # local run_command='ClusterID="$ClusterID" Suites="cluster-health" ./scripts/run-suites.sh --label-filter "!AzureLocalRackScale"'
+  local run_command='ClusterID="$ClusterID" Suites="cluster-health" ./scripts/run-suites.sh'
+
+  cat <<ENVINFO
+Running cluster-health with:
+  ResourceGroup=${ResourceGroup:-<unset>}
+  SkipCleanupSuite=${SkipCleanupSuite:-<unset>}
+  SkipDisruptiveTests=${SkipDisruptiveTests:-<unset>}
+  ApiVersion=${ApiVersion:-<unset>}
+  ClusterID=${ClusterID:-<unset>}
+  IncludeLabels=${IncludeLabels:-<unset>}
+  RunInParallel=${RunInParallel:-<unset>}
+
+Command:
+  ( cd ~/nc-api-testing/ && $run_command )
+
+ENVINFO
+
+  printf 'Continue? [Y]: '
+  local confirm=""
+  if ! read -r confirm; then
+    echo
+    return 0
+  fi
+  [ -z "$confirm" ] && confirm="y"
+  if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+    echo "cluster-health run skipped."
+    return 0
+  fi
+
   # Ephemeral values (30-char date pattern kept as original intent).
   # local ResourceGroup="robstarling-tmp-api-testing-$$-$(date +%y%m-%d)"
   # local RunInParallel=true
@@ -55,8 +85,8 @@ sim_health() {
   # AzureLocalRackScale or AzureOperatorNexus
   # local LabelFilter='!AzureLocalRackScale' 
 
-  ( cd ~/nc-api-testing/ || exit 1
-    ClusterID="$ClusterID" Suites="cluster-health" ./scripts/run-suites.sh --label-filter "!AzureLocalRackScale"
+  ( cd ~/git2/nc-api-testing/ || exit 1
+    eval "$run_command"
     # Inline env assignment ensures variables apply only to this command.
     # ClusterID="$ClusterID" \
     # ResourceGroup="$ResourceGroup" \
