@@ -8,18 +8,29 @@
 setup_bash_aliases() {
   local devboxRG="$1"
   local filename="$HOME/.bash_aliases"
-  # Check if the lines already exist to avoid duplicates
-  if [ -f "$filename" ] && grep -q 'dotfiles/bash_aliases' "$filename"; then
-    echo "Bash aliases already set up, skipping."
-    return
-  fi
-  echo 'source "$HOME/.dotfiles/bash_aliases/azure"'     >>"$filename"
-  echo 'source "$HOME/.dotfiles/bash_aliases/utils"'     >>"$filename"  
-  echo 'source "$HOME/.dotfiles/bash_aliases/devbox"'    >>"$filename"
-  echo 'source "$HOME/.dotfiles/bash_aliases/devbox-go"' >>"$filename"
-  echo "export devboxRG=$devboxRG"                       >>"$filename"
+  local added=0
 
-  echo "Bash aliases set up successfully. Log out and back in to apply changes, or source $filename"
+  local entries=(
+    'source "$HOME/.dotfiles/bash_aliases/azure"'
+    'source "$HOME/.dotfiles/bash_aliases/utils"'
+    'source "$HOME/.dotfiles/bash_aliases/devbox"'
+    'source "$HOME/.dotfiles/bash_aliases/devbox-go"'
+    'source "$HOME/.dotfiles/bash_aliases/gnome-keyring"'
+    "export devboxRG=$devboxRG"
+  )
+
+  for entry in "${entries[@]}"; do
+    if ! grep -qF "$entry" "$filename" 2>/dev/null; then
+      echo "$entry" >>"$filename"
+      ((added++))
+    fi
+  done
+
+  if [ "$added" -gt 0 ]; then
+    echo "Added $added entries to $filename. Log out and back in to apply changes, or source $filename"
+  else
+    echo "Bash aliases already set up, skipping."
+  fi
 }
 
 # Alternative secure inbound SSH port from dynamic TCP range
@@ -53,9 +64,19 @@ setup_devbox_config() {
   echo "Verify with: vm status"
 }
 
+install_gnome_keyring() {
+  if dpkg -s gnome-keyring libsecret-1-0 dbus-x11 &>/dev/null; then
+    echo "gnome-keyring already installed, skipping."
+    return
+  fi
+  sudo apt-get update -qq && sudo apt-get install -y -qq gnome-keyring libsecret-1-0 dbus-x11
+  echo "gnome-keyring installed successfully."
+}
+
 main() {
   local devboxRG="$1"
   setup_bash_aliases $devboxRG
+  install_gnome_keyring
   add_ssh_port_56312
   setup_devbox_config $devboxRG
   echo "All setup tasks complete for: $0. Your environment is ready to go!"
