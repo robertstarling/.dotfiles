@@ -6,6 +6,13 @@ export PATH="$HOME/nc-devbox:$PATH"
 # Add ~/.local/bin to PATH; this is where pipx installs binaries
 export PATH="$PATH:$HOME/.local/bin"
 
+# Ensure azureauth wrapper is linked (azureauth fails in headless SSH sessions;
+# the wrapper delegates to az cli instead). See: ~/.dotfiles/links/bin/azureauth
+if [ ! -L "$HOME/.local/bin/azureauth" ]; then
+  mkdir -p "$HOME/.local/bin"
+  ln -sf "$HOME/.dotfiles/links/bin/azureauth" "$HOME/.local/bin/azureauth"
+fi
+
 # Show current janitor TTL when we log in
 devboxRG="robstarling-2509"
 devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"

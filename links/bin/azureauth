@@ -1,0 +1,42 @@
+#!/bin/bash
+set -euo pipefail
+
+# Wrapper for azureauth that delegates to az cli in headless environments.
+# azureauth does not work over SSH ("Headless environment - skipping interactive auth").
+# Agency MCP servers (bluebird, etc.) call azureauth for EntraID tokens.
+#
+# Defined at: ~/.local/bin/azureauth (shadows /usr/bin/azureauth via PATH)
+
+REAL_AZUREAUTH="/usr/bin/azureauth"
+
+# Parse args to detect `aad --scope <scope>` pattern
+scope=""
+subcommand=""
+prev_arg=""
+for arg in "$@"; do
+  if [ -z "$subcommand" ]; then
+    subcommand="$arg"
+    prev_arg="$arg"
+    continue
+  fi
+  if [ "$prev_arg" = "--scope" ]; then
+    scope="$arg"
+  fi
+  prev_arg="$arg"
+done
+
+# Only intercept `aad` subcommand with a --scope; pass everything else through
+if [ "$subcommand" = "aad" ] && [ -n "$scope" ]; then
+  # Strip /.default suffix to get the resource ID for az cli
+  resource="${scope%/.default}"
+  token=$(az account get-access-token \
+    --resource "$resource" \
+    --query accessToken -o tsv 2>/dev/null) || true
+  if [ -n "$token" ]; then
+    echo -n "$token"
+    exit 0
+  fi
+fi
+
+# Fallback to real azureauth for anything we can't handle
+exec "$REAL_AZUREAUTH" "$@"
