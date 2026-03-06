@@ -1,0 +1,61 @@
+{
+  "servers": {
+    "kusto-ncstaging": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["azure-kusto-mcp"],
+      "env": {
+        "KUSTO_SERVICE_URI": "https://ncstaging-hub.eastus.kusto.windows.net/"
+      }
+    },
+    "kusto-nctest": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["azure-kusto-mcp"],
+      "env": {
+        "KUSTO_SERVICE_URI": "https://nctest-hub.eastus.kusto.windows.net/"
+      }
+    },
+    "kusto-ncdev": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["azure-kusto-mcp"],
+      "env": {
+        "KUSTO_SERVICE_URI": "https://ncdev-hub.eastus.kusto.windows.net/"
+      }
+    },
+    "kusto-ncsandbox": {
+      "type": "stdio",
+      "command": "/home/azureuser/.local/bin/uvx",
+      "args": ["azure-kusto-mcp"],
+      "env": {
+        "KUSTO_SERVICE_URI": "https://ncsandbox-hub.eastus.kusto.windows.net/",
+        "AZURE_IDENTITY_DISABLE_MANAGED_IDENTITY": "true",
+        "AZURE_IDENTITY_DISABLE_WORKLOAD_IDENTITY": "true",
+        "AZURE_IDENTITY_DISABLE_ENVIRONMENT": "true",
+        "AZURE_IDENTITY_DISABLE_VISUAL_STUDIO_CODE": "true",
+        "AZURE_IDENTITY_DISABLE_VISUAL_STUDIO": "true",
+        "AZURE_IDENTITY_DISABLE_SHARED_TOKEN_CACHE": "true",
+        "AZURE_IDENTITY_DISABLE_AZUREPOWERSHELL": "true",
+        "MSI_ENDPOINT": "",
+        "IDENTITY_ENDPOINT": ""
+      }
+    },
+    "kusto-clusterconfig": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["azure-kusto-mcp"],
+      "env": {
+        "KUSTO_SERVICE_URI": "https://clusterconfigprod.kusto.windows.net/"
+      }
+    },
+    "kusto-rpsaas": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["azure-kusto-mcp"],
+      "env": {
+        "KUSTO_SERVICE_URI": "https://rpsaas.kusto.windows.net/"
+      }
+    }
+  }
+}

@@ -13,6 +13,13 @@ if [ ! -L "$HOME/.local/bin/azureauth" ]; then
   ln -sf "$HOME/.dotfiles/links/bin/azureauth" "$HOME/.local/bin/azureauth"
 fi
 
+# Global MCP server config: single source of truth in dotfiles, symlinked for
+# both Agency Copilot (~/.copilot/mcp-config.json) and VS Code (.vscode/mcp.json).
+if [ ! -L "$HOME/.copilot/mcp-config.json" ]; then
+  mkdir -p "$HOME/.copilot"
+  ln -sf "$HOME/.dotfiles/links/mcp.json" "$HOME/.copilot/mcp-config.json"
+fi
+
 # Show current janitor TTL when we log in
 devboxRG="robstarling-2509"
 devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
