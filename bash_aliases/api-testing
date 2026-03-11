@@ -2,6 +2,23 @@
 # - Re-using resource group names and skipping cleanup speeds up iterative testing
 # - The $$ variable in the ResourceGroup name ensures uniqueness per shell process
 declare -x ResourceGroup="robstarling-tmp-api-testing-$(date +%y%m-%d)-$$"
+
+api_test_env() {
+  cat <<EOF
+API Testing Environment:
+  ResourceGroup=${ResourceGroup:-<unset>}
+  ApiVersion=${ApiVersion:-<unset>}
+  Suites=${Suites:-<unset>}
+  SkipCleanupSuite=${SkipCleanupSuite:-<unset>}
+  SkipDisruptiveTests=${SkipDisruptiveTests:-<unset>}
+  ClusterID=${ClusterID:-<unset>}
+  IncludeLabels=${IncludeLabels:-<unset>}
+  RunInParallel=${RunInParallel:-<unset>}
+
+Usage:
+  ./scripts/run-suites.sh --repeat=10 --procs=5 --focus="My test spec"
+EOF
+}
 declare -x SkipCleanupSuite=True
 declare -x RunInParallel=true
 declare -x RunInParallelArg="--procs=4"
