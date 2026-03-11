@@ -7,6 +7,10 @@ if [ ! -d "$GOCACHE" ]; then
     sudo chown azureuser:azureuser "$GOCACHE"
 fi
 
+# Fix make errors like
+# level=error msg="Running error: context loading failed: failed to load packages: failed to load packages: failed to load with go/packages: err: exit status 1: stderr: go: go.mod requires go >= 1.25.7 (running go 1.24.9; GOTOOLCHAIN=local)\n" 
+export GOTOOLCHAIN=auto 
+
 # Add the latest Go toolchain bin directory to PATH
 GO_TOOLCHAIN_BIN="$(
   printf '%s\n' "$HOME"/go/pkg/mod/golang.org/toolchain@*/bin \
