@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Git Credential Manager requires GPG_TTY for terminal-based credential prompts.
+# Without this, git operations emit: "fatal: GPG_TTY is not set"
+export GPG_TTY=$(tty)
+
 # Add ~/nc-devbox PATH; this contains various useful scripts from the devbox CLI
 export PATH="$HOME/nc-devbox:$PATH"
 
