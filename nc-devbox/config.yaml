@@ -17,7 +17,7 @@ azure:
   # The resource group to create resources in.
   # Will be overridden by the DB_AZ_RESOURCE_GROUP environment variable.
   # If unset, this will default to `<azure_alias>-devbox-rg`
-  resource_group: "robstarling-2603-westus"
+  resource_group: "robstarling-2603-westus3"
 
   # The location to create resources in. The selected location must have a
   # pre-configured vnet and subnet.
@@ -25,7 +25,7 @@ azure:
   # * eastus2
   # * uksouth
   # Will be overridden by the DB_AZ_LOCATION environment variable.
-  location: "westus"
+  location: "westus3"
 
 vm:
   # The name of the VM to create.
