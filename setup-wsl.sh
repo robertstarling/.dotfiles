@@ -10,15 +10,22 @@ setup_bash_aliases() {
   fi
 
   echo 'source "$HOME/.dotfiles/bash_aliases/azure"' >>"$HOME/.bash_aliases"
-  echo 'source "$HOME/.dotfiles/bash_aliases/k8s"' >>"$HOME/.bash_aliases"
+  # echo 'source "$HOME/.dotfiles/bash_aliases/k8s"' >>"$HOME/.bash_aliases"
   echo 'source "$HOME/.dotfiles/bash_aliases/utils"' >>"$HOME/.bash_aliases"
   echo 'source "$HOME/.dotfiles/bash_aliases/wsl"' >>"$HOME/.bash_aliases"
 
   echo "Bash aliases set up successfully. Log out and back in to apply changes."
 }
 
+install_packages() {
+  sudo apt-get install -y -q \
+    socat \
+    ;
+}
+
 main() {
   setup_bash_aliases
+  install_packages
   echo "All setup tasks complete for: $0. Your environment is ready to go!"
 }
 
