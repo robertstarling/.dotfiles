@@ -17,7 +17,7 @@ azure:
   # The resource group to create resources in.
   # Will be overridden by the DB_AZ_RESOURCE_GROUP environment variable.
   # If unset, this will default to `<azure_alias>-devbox-rg`
-  resource_group: "robstarling-2603"
+  resource_group: "robstarling-2026-03"
 
   # The location to create resources in. The selected location must have a
   # pre-configured vnet and subnet.
@@ -34,7 +34,7 @@ vm:
 
   # The size of the VM to create.
   # Will be overridden by the DB_VM_SIZE environment variable.
-  size: "Standard_D32s_v3"
+  size: "Standard_D32s_v5"
 
   # The image to use for the VM.
   # Will be overridden by the DB_VM_IMAGE environment variable.
@@ -48,7 +48,7 @@ vm:
 
   # The size of the root disk in GB.
   # Will be overridden by the DB_VM_DISK_SIZE environment variable.
-  disk_size: 256
+  disk_size: 512
 
   # The time in UTC to automatically shutdown the devbox on a daily basis. The
   # value should be provided in the format HHMM, where HH is the hour and MM
