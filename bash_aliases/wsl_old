@@ -1,0 +1,30 @@
+# WSL specific file structure
+# alias cdgit='cd ~/git'
+# alias cdwingit='cd ~/wingit'
+# alias cdsource='cd ~/source'
+# alias cdwinsource='cd ~/winsource'
+# alias cdkube='cd ~/one/Documents/kubeconfig'
+
+# Automatically start npiperelay and socat 
+# to help bridge the Windows named pipe used by the SSH agent 
+# to a Unix socket that WSL2 can use.
+export SSH_AUTH_SOCK=$HOME/.ssh-agent.sock
+rm -f "$SSH_AUTH_SOCK"
+(setsid socat UNIX-LISTEN:"$SSH_AUTH_SOCK",fork EXEC:"$HOME/.dotfiles/src/npiperelay.exe -ei -s //./pipe/openssh-ssh-agent",nofork &) >/dev/null 2>&1
+
+# Function to download and extract code coverage results, e.g. from nc-devbox:
+#   rr=nc-platform-operator && tar -czf ~/coverage-$rr-$(date +"%y%m-%d").tar ~/$rr/out/tests/unit && echo coverage-$rr-$(date +"%y%m-%d")
+# Then copy to local machine with:
+#  get_coverage coverage-nc-platform-operator-2504-08
+get_coverage() {
+  local tarName=$1
+
+  # scp robstarling-2504-vm:$tarName.tar ~/rjs/Downloads/coverage/
+  scp devbox:$tarName.tar ~/rjs/Downloads/coverage/
+  tar -xf ~/rjs/Downloads/coverage/$tarName.tar -C ~/rjs/Downloads/coverage/
+  mv ~/rjs/Downloads/coverage/home ~/rjs/Downloads/coverage/$tarName
+  ls ~/rjs/Downloads/coverage/$tarName/azureuser
+  ls ~/rjs/Downloads/coverage/$tarName/azureuser/*
+  ls ~/rjs/Downloads/coverage/$tarName/azureuser/*/out
+  cd ~/rjs/Downloads/coverage/$tarName/azureuser/*/out/tests/unit && explorer.exe .
+}
