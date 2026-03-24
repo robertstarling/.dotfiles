@@ -36,7 +36,19 @@ setup_git_credential_helper() {
   echo "Git credential helper configured to use Windows GCM."
 }
 
+setup_passwordless_sudo() {
+  local sudoers_file="/etc/sudoers.d/$USER"
+  if [ -f "$sudoers_file" ]; then
+    echo "Passwordless sudo already configured, skipping."
+    return
+  fi
+  echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee "$sudoers_file" >/dev/null
+  sudo chmod 0440 "$sudoers_file"
+  echo "Passwordless sudo configured for $USER."
+}
+
 main() {
+  setup_passwordless_sudo
   setup_bash_aliases
   install_packages
   setup_git_credential_helper

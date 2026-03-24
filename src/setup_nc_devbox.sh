@@ -97,9 +97,21 @@ install_gnome_keyring() {
   echo "gnome-keyring installed successfully."
 }
 
+install_tmux() {
+  local log_dir=$(mktemp -d /tmp/setup_logs.XXXXXX)
+  local log_file="$log_dir/install_tmux.sh.log"
+  echo "Installing tmux from source..."
+  if ! bash "$HOME/.dotfiles/src/install_tmux.sh" >"$log_file" 2>&1; then
+    echo "tmux install failed. Check log: $log_file"
+    return 1
+  fi
+  echo "tmux installed successfully."
+}
+
 main() {
   local devboxRG="$1"
   setup_bash_aliases $devboxRG
+  install_tmux
   setup_vscode_mcp_links
   install_gnome_keyring
   add_ssh_port_56312
