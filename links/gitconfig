@@ -110,3 +110,7 @@
 [credential "azrepos:org/mariner-org"]
 	azureAuthority = https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47
 	username = ianhowell@microsoft.com
+[credential]
+	helper = !\"/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe\"
+[credential "https://dev.azure.com"]
+	useHttpPath = true
