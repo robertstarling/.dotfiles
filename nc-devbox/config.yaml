@@ -1,0 +1,96 @@
+# Copy this file to ~/.config/nc-devbox/config.yaml and adapt to your needs.
+# NOTE: If a corresponding value is not set (via the user's config.yaml or the
+# environment variable) the value specified in this file will be used (unless
+# otherwise noted).
+
+# By default, the devbox's resource group is automatically garbage-collected
+# after a week of no use. This timer is reset every time the VM powers on via
+# the `vm start` command. Using the auto-shutdown feature can help to ensure
+# that your devbox resource group is never deleted, so long as you continue to
+# use it.
+#
+# Valid values are "1 day", "1 week", "1 month". Any other value will result in
+# the default of 1 week.
+time_to_live: "1 month"
+
+azure:
+  # The resource group to create resources in.
+  # Will be overridden by the DB_AZ_RESOURCE_GROUP environment variable.
+  # If unset, this will default to `<azure_alias>-devbox-rg`
+  resource_group: "robstarling-2509"
+
+  # The location to create resources in. The selected location must have a
+  # pre-configured vnet and subnet.
+  # Currently, the valid locatisons are:
+  # * eastus2
+  # * uksouth
+  # Will be overridden by the DB_AZ_LOCATION environment variable.
+  location: "eastus2"
+
+vm:
+  # The name of the VM to create.
+  # Will be overridden by the DB_VM_NAME environment variable.
+  name: "vm"
+
+  # The size of the VM to create.
+  # Will be overridden by the DB_VM_SIZE environment variable.
+  size: "Standard_D32s_v3"
+
+  # The image to use for the VM.
+  # Will be overridden by the DB_VM_IMAGE environment variable.
+  # TODO(ianhowell): Didn't we update our pipeline image at some point? We should check this. (January 27, 2025)
+  # nc_development_linux 1.0.12 is the Ubuntu 20.04.6 LTS image used by our
+  # pipeline 1ES pool agents The problem is that as of January 3rd, 2024, that
+  # image has old versions of Go (1.17) and yq/jq baked into it AND installs
+  # yq/jq/go into /usr/bin instead of /usr/local/
+  # image: "/subscriptions/fca2e8ee-1179-48b8-9532-428ed0873a2e/resourceGroups/nc-development-rg/providers/Microsoft.Compute/galleries/nc_development_images/images/nc_development_linux/versions/1.0.12"
+  image: "Ubuntu2204"
+
+  # The size of the root disk in GB.
+  # Will be overridden by the DB_VM_DISK_SIZE environment variable.
+  disk_size: 256
+
+  # The time in UTC to automatically shutdown the devbox on a daily basis. The
+  # value should be provided in the format HHMM, where HH is the hour and MM
+  # is the minute. It must be *exactly* 4 digits; use leading zeros if needed.
+  # Example: "0300" for 3:00am UTC
+  # If unset, auto-shutdown will not be enabled.
+  # Will be overridden by the DB_VM_AUTO_SHUTDOWN_TIME environment variable.
+  auto_shutdown_time: ""
+
+  # The path to a custom cloud-init file to use for the VM. If unset, this will
+  # default to `nc-devbox/docs/examples/cloud-init.yaml`.
+  # Will be overridden by the DB_VM_CLOUD_INIT_PATH environment variable.
+  cloud_init_path: ""
+
+  # When set to false, the following prevents the virtual machine from being
+  # tagged with required security tags.
+  # NOTE: This should only be disabled for work items that *specifically*
+  # require it (typically to more closely match a production environment), and
+  # even then, this should be a temporary measure.
+  # Will be overridden by the DB_VM_ENABLE_SECURITY_TAGS environment variable.
+  enable_security_tags: true
+
+ssh:
+  # The path to the ssh private key used to connect to the VM. The public key
+  # path will be derived from this value by appending the `.pub` extension.
+  # Will be overridden by the DB_SSH_PRIVATE_KEY_PATH environment variable.
+  private_key_path: "~/.ssh/id_rsa"
+
+# Files and directories listed here will be "mirrored" from your laptop to the VM.
+sync:
+  # - ~/.bash_aliases
+  # - ~/.gitignore
+  # - ~/.vimrc
+  # - ~/.vim
+  # - ~/.zshrc
+  # - ~/.oh-my-zsh/oh-my-zsh.sh
+
+# Each shell command listed here will be executed immediately after creating the devbox VM.
+# These commands will be executed as the 'azureuser' user, not root.
+exec-after:
+  # Installs the 'dive' tool
+  # - go install github.com/wagoodman/dive@latest
+  #
+  # Installs the oh-my-zsh tooling:
+  # - sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
