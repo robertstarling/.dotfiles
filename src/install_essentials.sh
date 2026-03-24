@@ -29,7 +29,7 @@ sudo apt-get install -y -q \
   # git \
   make \
   # silversearcher-ag \
-  tmux \
+  # tmux \  # installed from source by install_tmux.sh
   # tree \
   # xclip \
   # shellcheck \
