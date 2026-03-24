@@ -17,7 +17,7 @@ azure:
   # The resource group to create resources in.
   # Will be overridden by the DB_AZ_RESOURCE_GROUP environment variable.
   # If unset, this will default to `<azure_alias>-devbox-rg`
-  resource_group: "robstarling-2509"
+  resource_group: "robstarling-2603"
 
   # The location to create resources in. The selected location must have a
   # pre-configured vnet and subnet.
@@ -25,7 +25,7 @@ azure:
   # * eastus2
   # * uksouth
   # Will be overridden by the DB_AZ_LOCATION environment variable.
-  location: "eastus2"
+  location: "uksouth"
 
 vm:
   # The name of the VM to create.
@@ -69,13 +69,14 @@ vm:
   # require it (typically to more closely match a production environment), and
   # even then, this should be a temporary measure.
   # Will be overridden by the DB_VM_ENABLE_SECURITY_TAGS environment variable.
-  enable_security_tags: true
+  enable_security_tags: false
 
 ssh:
   # The path to the ssh private key used to connect to the VM. The public key
   # path will be derived from this value by appending the `.pub` extension.
   # Will be overridden by the DB_SSH_PRIVATE_KEY_PATH environment variable.
-  private_key_path: "~/.ssh/id_rsa"
+  # private_key_path: "~/.ssh/id_rsa"
+  private_key_path: "~/.ssh/id_ed25519_nc_devbox"
 
 # Files and directories listed here will be "mirrored" from your laptop to the VM.
 sync:
