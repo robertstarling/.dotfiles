@@ -22,7 +22,7 @@ install() {
 }
 
 install_dependencies() {
-  sudo apt-get install -y libevent-2.1-7 libevent-dev ncurses-base libncurses-dev bison
+  sudo apt-get install -y build-essential libevent-2.1-7 libevent-dev ncurses-base libncurses-dev bison
 }
 
 main

@@ -37,7 +37,7 @@ install_components() {
     # "$HOME/.dotfiles/src/install_delta.sh"
     # "$HOME/.dotfiles/src/install_lazygit.sh"
     # "$HOME/.dotfiles/src/install_neovim.sh"
-    "$HOME/.dotfiles/src/install_tmux.sh"
+    # "$HOME/.dotfiles/src/install_tmux.sh"  # nc-devbox only; see src/setup_nc_devbox.sh
     # "$HOME/.dotfiles/src/install_zoxide.sh"
     # "$HOME/.dotfiles/src/install_sesh.sh"
     # "$HOME/.dotfiles/src/install_ohmyposh.sh"
