@@ -5,13 +5,6 @@
 # alias cdwinsource='cd ~/winsource'
 # alias cdkube='cd ~/one/Documents/kubeconfig'
 
-# Automatically start npiperelay and socat 
-# to help bridge the Windows named pipe used by the SSH agent 
-# to a Unix socket that WSL2 can use.
-export SSH_AUTH_SOCK=$HOME/.ssh-agent.sock
-rm -f "$SSH_AUTH_SOCK"
-(setsid socat UNIX-LISTEN:"$SSH_AUTH_SOCK",fork EXEC:"$HOME/.dotfiles/src/npiperelay.exe -ei -s //./pipe/openssh-ssh-agent",nofork &) >/dev/null 2>&1
-
 # Function to download and extract code coverage results, e.g. from nc-devbox:
 #   rr=nc-platform-operator && tar -czf ~/coverage-$rr-$(date +"%y%m-%d").tar ~/$rr/out/tests/unit && echo coverage-$rr-$(date +"%y%m-%d")
 # Then copy to local machine with:
