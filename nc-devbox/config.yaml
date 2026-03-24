@@ -17,7 +17,7 @@ azure:
   # The resource group to create resources in.
   # Will be overridden by the DB_AZ_RESOURCE_GROUP environment variable.
   # If unset, this will default to `<azure_alias>-devbox-rg`
-  resource_group: "robstarling-2026-03"
+  resource_group: "robstarling-2603-westus"
 
   # The location to create resources in. The selected location must have a
   # pre-configured vnet and subnet.
@@ -25,7 +25,7 @@ azure:
   # * eastus2
   # * uksouth
   # Will be overridden by the DB_AZ_LOCATION environment variable.
-  location: "uksouth"
+  location: "westus"
 
 vm:
   # The name of the VM to create.
@@ -45,6 +45,7 @@ vm:
   # yq/jq/go into /usr/bin instead of /usr/local/
   # image: "/subscriptions/fca2e8ee-1179-48b8-9532-428ed0873a2e/resourceGroups/nc-development-rg/providers/Microsoft.Compute/galleries/nc_development_images/images/nc_development_linux/versions/1.0.12"
   image: "Ubuntu2204"
+  # image: "Ubuntu2404"
 
   # The size of the root disk in GB.
   # Will be overridden by the DB_VM_DISK_SIZE environment variable.
@@ -62,6 +63,13 @@ vm:
   # default to `nc-devbox/docs/examples/cloud-init.yaml`.
   # Will be overridden by the DB_VM_CLOUD_INIT_PATH environment variable.
   cloud_init_path: ""
+
+  # The Azure resource ID of a managed disk to use as the OS disk for the VM.
+  # When set, the VM will be created with this disk attached as its OS disk
+  # instead of using the image specified above. The disk must be a Linux OS
+  # disk created via `az disk create`.
+  # Will be overridden by the DB_VM_OS_DISK_ID environment variable.
+  os_disk_id: ""
 
   # When set to false, the following prevents the virtual machine from being
   # tagged with required security tags.

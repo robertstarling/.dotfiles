@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Add ~/.local/bin to PATH; this is where pipx installs binaries
+export PATH="$PATH:$HOME/.local/bin"
+
+# Global MCP server config: single source of truth in dotfiles, symlinked for
+# both Agency Copilot (~/.copilot/mcp-config.json) and VS Code (.vscode/mcp.json).
+if [ ! -L "$HOME/.copilot/mcp-config.json" ]; then
+  mkdir -p "$HOME/.copilot"
+  ln -sf "$HOME/.dotfiles/links/mcp.json" "$HOME/.copilot/mcp-config.json"
+fi
