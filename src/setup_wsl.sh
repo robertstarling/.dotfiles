@@ -3,18 +3,29 @@
 # This file is fully idempotent, so feel free to run it multiple times.
 
 setup_bash_aliases() {
-  # Check if the lines already exist to avoid duplicates
-  if [ -f "$HOME/.bash_aliases" ] && grep -q 'dotfiles/bash_aliases' "$HOME/.bash_aliases"; then
+  local filename="$HOME/.bash_aliases"
+  local added=0
+
+  local entries=(
+    'source "$HOME/.dotfiles/bash_aliases/azure"'
+    'source "$HOME/.dotfiles/bash_aliases/utils"'
+    'source "$HOME/.dotfiles/bash_aliases/common"'
+    'source "$HOME/.dotfiles/bash_aliases/common-go"'
+    'source "$HOME/.dotfiles/bash_aliases/wsl"'
+  )
+
+  for entry in "${entries[@]}"; do
+    if ! grep -qF "$entry" "$filename" 2>/dev/null; then
+      echo "$entry" >>"$filename"
+      ((added++))
+    fi
+  done
+
+  if [ "$added" -gt 0 ]; then
+    echo "Added $added entries to $filename. Log out and back in to apply changes, or source $filename"
+  else
     echo "Bash aliases already set up, skipping."
-    return
   fi
-
-  echo 'source "$HOME/.dotfiles/bash_aliases/azure"' >>"$HOME/.bash_aliases"
-  # echo 'source "$HOME/.dotfiles/bash_aliases/k8s"' >>"$HOME/.bash_aliases"
-  echo 'source "$HOME/.dotfiles/bash_aliases/utils"' >>"$HOME/.bash_aliases"
-  echo 'source "$HOME/.dotfiles/bash_aliases/wsl"' >>"$HOME/.bash_aliases"
-
-  echo "Bash aliases set up successfully. Log out and back in to apply changes."
 }
 
 install_packages() {

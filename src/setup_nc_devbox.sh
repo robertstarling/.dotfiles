@@ -13,6 +13,8 @@ setup_bash_aliases() {
   local entries=(
     'source "$HOME/.dotfiles/bash_aliases/azure"'
     'source "$HOME/.dotfiles/bash_aliases/utils"'
+    'source "$HOME/.dotfiles/bash_aliases/common"'
+    'source "$HOME/.dotfiles/bash_aliases/common-go"'
     'source "$HOME/.dotfiles/bash_aliases/devbox"'
     'source "$HOME/.dotfiles/bash_aliases/devbox-go"'
     'source "$HOME/.dotfiles/bash_aliases/gnome-keyring"'
