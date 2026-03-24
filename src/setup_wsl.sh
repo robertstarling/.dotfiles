@@ -47,11 +47,32 @@ setup_passwordless_sudo() {
   echo "Passwordless sudo configured for $USER."
 }
 
+setup_inotify_limits() {
+  local conf="/etc/sysctl.d/90-override.conf"
+  if [ -f "$conf" ] && grep -q "max_user_watches=524288" "$conf"; then
+    echo "inotify limits already configured, skipping."
+    return
+  fi
+  echo -e "fs.inotify.max_user_watches=524288\nfs.inotify.max_user_instances=512" | sudo tee "$conf" >/dev/null
+  sudo sysctl -p "$conf"
+  echo "inotify limits configured (watches=524288, instances=512)."
+}
+
+install_docker() {
+  if command -v docker &>/dev/null; then
+    echo "Docker already installed, skipping."
+    return
+  fi
+  bash "$HOME/.dotfiles/src/install_docker.sh"
+}
+
 main() {
   setup_passwordless_sudo
   setup_bash_aliases
   install_packages
   setup_git_credential_helper
+  setup_inotify_limits
+  install_docker
   echo "All setup tasks complete for: $0. Your environment is ready to go!"
 }
 
