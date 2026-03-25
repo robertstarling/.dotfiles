@@ -86,8 +86,7 @@ setup_devbox_config() {
   sed -i 's/time_to_live: .*/time_to_live: "1 month"/' "$filename"
   echo "Successfully added overrides:"
   diff "$HOME/nc-devbox/docs/examples/config.yaml" "$filename"
-  echo 
-  echo "Verify with: vm status"
+  echo
 }
 
 # Configure GPG for headless SSH use: cache credentials for a full work day,
