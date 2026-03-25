@@ -104,6 +104,7 @@ main() {
   prevent_apt_daemon_restart_prompts
   install_components
   link_dotfiles
+  bash "$HOME/.dotfiles/src/install_az.sh"
 
   # Environment-specific setup
   if [ "$env" = "wsl" ]; then
