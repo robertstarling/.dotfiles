@@ -11,29 +11,7 @@ if [ -t 0 ]; then
   fi
 fi
 
-# Cache GPG credentials for a full work day (14h :p) to avoid repeated prompts.
-gpg_agent_conf="$HOME/.gnupg/gpg-agent.conf"
-gpg_agent_ttl=$((14 * 60 * 60))
-
-mkdir -p "$HOME/.gnupg"
-chmod 700 "$HOME/.gnupg"
-touch "$gpg_agent_conf"
-
-ensure_gpg_agent_setting() {
-  local key="$1"
-  local value="$2"
-  local conf="$3"
-
-  if grep -q "^$key " "$conf" 2>/dev/null; then
-    sed -i "s|^$key .*|$key $value|" "$conf"
-  else
-    printf '%s %s\n' "$key" "$value" >> "$conf"
-  fi
-}
-
-ensure_gpg_agent_setting "default-cache-ttl" "$gpg_agent_ttl" "$gpg_agent_conf"
-ensure_gpg_agent_setting "max-cache-ttl" "$gpg_agent_ttl" "$gpg_agent_conf"
-
+# Reload gpg-agent so it picks up the current TTY set above.
 if command -v gpg-connect-agent >/dev/null 2>&1; then
   gpg-connect-agent reloadagent /bye >/dev/null 2>&1 || true
 fi
