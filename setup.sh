@@ -76,6 +76,45 @@ create_github_ssh_key_if_missing() {
   echo "  git remote set-url origin git@github.com:robertstarling/.dotfiles"
 }
 
+configure_dotfiles_git_identity() {
+  local dotfiles_gitconfig="$HOME/.dotfiles/local_gitconfig"
+
+  if ! git -C "$HOME/.dotfiles" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    return
+  fi
+
+  if ! git -C "$HOME/.dotfiles" config --local --get-all include.path | grep -Fxq "$dotfiles_gitconfig"; then
+    git -C "$HOME/.dotfiles" config --local --add include.path "$dotfiles_gitconfig"
+  fi
+
+  git -C "$HOME/.dotfiles" config --local --unset-all user.name >/dev/null 2>&1 || true
+  git -C "$HOME/.dotfiles" config --local --unset-all user.email >/dev/null 2>&1 || true
+}
+
+report_git_identity_settings() {
+  local dotfiles_gitconfig="$HOME/.dotfiles/local_gitconfig"
+  local dotfiles_name
+  local dotfiles_email
+  local global_name
+  local global_email
+
+  dotfiles_name=$(git config -f "$dotfiles_gitconfig" --get user.name 2>/dev/null || true)
+  dotfiles_email=$(git config -f "$dotfiles_gitconfig" --get user.email 2>/dev/null || true)
+  global_name=$(git config --global --get user.name 2>/dev/null || true)
+  global_email=$(git config --global --get user.email 2>/dev/null || true)
+
+  log ".dotfiles repo git identity comes from $dotfiles_gitconfig"
+  log ".dotfiles user.name: ${dotfiles_name:-<unset>}"
+  log ".dotfiles user.email: ${dotfiles_email:-<unset>}"
+  log "Update $dotfiles_gitconfig if you want different values for the .dotfiles repo."
+
+  log "Global git identity for repos outside .dotfiles:"
+  log "global user.name: ${global_name:-<unset>}"
+  log "global user.email: ${global_email:-<unset>}"
+  log "Update them with: git config --global user.name \"Your Name\""
+  log "and: git config --global user.email \"you@example.com\""
+}
+
 link_tmux_config() {
   mkdir -p "$HOME/.config"
   ln -sfn "$HOME/.dotfiles/links/tmux" "$HOME/.config/tmux"
@@ -104,6 +143,8 @@ main() {
   prevent_apt_daemon_restart_prompts
   install_components
   link_tmux_config
+  configure_dotfiles_git_identity
+  report_git_identity_settings
 
   # Environment-specific setup
   if [ "$env" = "wsl" ]; then
