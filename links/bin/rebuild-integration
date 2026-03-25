@@ -1,0 +1,54 @@
+#!/bin/bash
+set -euo pipefail
+
+INTEGRATION_BRANCH="robstarling/integration"
+PR_ID="478685"
+ADO_ORG="https://dev.azure.com/msazuredev"
+ADO_PROJECT="AzureForOperatorsIndustry"
+
+TOPIC_BRANCHES=(
+  "robstarling/fix-idrac-cert-rotation-race-conditions"
+  "robstarling/redfish-job-queue-poc"
+  "robstarling/redfish-job-queue-part2"
+)
+
+git switch main
+git pull
+
+git branch -D "${INTEGRATION_BRANCH}" 2>/dev/null || true
+git switch -c "${INTEGRATION_BRANCH}"
+
+merged_branches=()
+for branch in "${TOPIC_BRANCHES[@]}"; do
+  if git rev-parse --verify "${branch}" >/dev/null 2>&1; then
+    echo "Merging ${branch}..."
+    git merge --no-edit "${branch}"
+    merged_branches+=("${branch}")
+  else
+    echo "Skipping ${branch} (does not exist yet)"
+  fi
+done
+
+echo ""
+echo "Pushing ${INTEGRATION_BRANCH}..."
+git push --force-with-lease origin "${INTEGRATION_BRANCH}"
+
+description="## DO NOT MERGE — integration test branch\n\n"
+description+="Rebuilt: $(date -u '+%Y-%m-%d %H:%M:%S UTC')\n\n"
+description+="### Included branches\n\n"
+for branch in "${merged_branches[@]}"; do
+  short_sha=$(git rev-parse --short "${branch}")
+  description+="- \`${branch}\` (${short_sha})\n"
+done
+
+echo ""
+echo "Updating PR #${PR_ID} description..."
+az repos pr update \
+  --id "${PR_ID}" \
+  --description "$(echo -e "${description}")" \
+  --org "${ADO_ORG}" \
+  --project "${ADO_PROJECT}" \
+  --output none
+
+echo ""
+echo "Done. Merged ${#merged_branches[@]} branch(es), pushed, and updated PR #${PR_ID}."
