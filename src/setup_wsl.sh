@@ -36,15 +36,17 @@ install_packages() {
 
 setup_git_credential_helper() {
   local gcm="/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe"
+  local xdg_git_config="${XDG_CONFIG_HOME:-$HOME/.config}/git/config"
   if [ ! -f "$gcm" ]; then
     echo "WARNING: git-credential-manager.exe not found at $gcm"
     echo "Install Git for Windows to get it, then re-run this script."
     return 1
   fi
 
-  git config --global credential.helper "!\"$gcm\""
-  git config --global credential.https://dev.azure.com.useHttpPath true
-  echo "Git credential helper configured to use Windows GCM."
+  mkdir -p "$(dirname "$xdg_git_config")"
+  git config --file "$xdg_git_config" credential.helper "!\"$gcm\""
+  git config --file "$xdg_git_config" credential.https://dev.azure.com.useHttpPath true
+  echo "Git credential helper configured in $xdg_git_config to use Windows GCM."
 }
 
 setup_passwordless_sudo() {
