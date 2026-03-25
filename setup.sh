@@ -7,7 +7,7 @@
 #   ./setup.sh wsl           # Base setup + WSL-specific config
 #   ./setup.sh nc-devbox RG  # Base setup + Azure devbox config (RG = resource group)
 
-source "$HOME/.dotfiles/links/zsh/utils/output/log.sh"
+source "$HOME/.dotfiles/src/lib/log.sh"
 
 usage() {
   echo "Usage: $0 [wsl | nc-devbox DEVBOX_RESOURCE_GROUP]"
@@ -30,7 +30,6 @@ install_components() {
     "$HOME/.dotfiles/src/install_az.sh"
     # "$HOME/.dotfiles/src/update_git_submodules.sh"
     # "$HOME/.dotfiles/src/install_go.sh"
-    # "$HOME/.dotfiles/src/install_zsh.sh"
     # "$HOME/.dotfiles/src/install_fzf.sh"
     # "$HOME/.dotfiles/src/install_fd.sh"
     # "$HOME/.dotfiles/src/remap_capslock.sh"
@@ -41,7 +40,6 @@ install_components() {
     # "$HOME/.dotfiles/src/install_tmux.sh"  # nc-devbox only; see src/setup_nc_devbox.sh
     # "$HOME/.dotfiles/src/install_zoxide.sh"
     # "$HOME/.dotfiles/src/install_sesh.sh"
-    # "$HOME/.dotfiles/src/install_ohmyposh.sh"
     # "$HOME/.dotfiles/src/install_docker.sh"
     # "$HOME/.dotfiles/src/install_opencode.sh"
   )

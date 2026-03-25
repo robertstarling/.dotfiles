@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$HOME/.dotfiles/links/zsh/utils/output/log.sh"
+source "$HOME/.dotfiles/src/lib/log.sh"
 
 main() {
   az_login

@@ -92,14 +92,9 @@ sync:
   # - ~/.gitignore
   # - ~/.vimrc
   # - ~/.vim
-  # - ~/.zshrc
-  # - ~/.oh-my-zsh/oh-my-zsh.sh
 
 # Each shell command listed here will be executed immediately after creating the devbox VM.
 # These commands will be executed as the 'azureuser' user, not root.
 exec-after:
   # Installs the 'dive' tool
   # - go install github.com/wagoodman/dive@latest
-  #
-  # Installs the oh-my-zsh tooling:
-  # - sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
