@@ -27,6 +27,7 @@ install_components() {
   # TODO: Turn these into a DAG and install everything concurrently.
   local components=(
     "$HOME/.dotfiles/src/install_essentials.sh"
+    "$HOME/.dotfiles/src/install_az.sh"
     # "$HOME/.dotfiles/src/update_git_submodules.sh"
     # "$HOME/.dotfiles/src/install_go.sh"
     # "$HOME/.dotfiles/src/install_zsh.sh"
@@ -104,7 +105,6 @@ main() {
   prevent_apt_daemon_restart_prompts
   install_components
   link_dotfiles
-  bash "$HOME/.dotfiles/src/install_az.sh"
 
   # Environment-specific setup
   if [ "$env" = "wsl" ]; then
