@@ -27,7 +27,7 @@ if [ ! -L "$HOME/.local/bin/azureauth" ]; then
 fi
 
 # Show current janitor TTL when we log in
-devboxRG="robstarling-2509"
+devboxRG="robstarling-westus3-2603"
 devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
 janitor $devboxRG $devboxSub
 echo "To extend Janitor TTL for $devboxRG $devboxSub:"
