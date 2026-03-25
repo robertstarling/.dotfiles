@@ -1,6 +1,13 @@
 #!/bin/bash
 
 main() {
+  # Skip if a Linux-native az CLI is already installed.
+  # On WSL the Windows az (under /mnt/c/...) doesn't count — it can't talk to
+  # the Linux Docker daemon, which breaks `az acr login`.
+  if command -v az &>/dev/null && [[ "$(command -v az)" != /mnt/* ]]; then
+    echo "Linux-native az CLI already installed, skipping."
+    return
+  fi
   delete_az
   install_az
   az version
