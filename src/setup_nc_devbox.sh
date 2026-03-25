@@ -90,6 +90,49 @@ setup_devbox_config() {
   echo "Verify with: vm status"
 }
 
+# Configure GPG for headless SSH use: cache credentials for a full work day,
+# use pinentry-tty (avoids curses hangs), and enable loopback pinentry mode.
+setup_gpg_config() {
+  local gpg_agent_conf="$HOME/.gnupg/gpg-agent.conf"
+  local gpg_conf="$HOME/.gnupg/gpg.conf"
+  local gpg_agent_ttl=$((14 * 60 * 60))
+
+  mkdir -p "$HOME/.gnupg"
+  chmod 700 "$HOME/.gnupg"
+  touch "$gpg_agent_conf"
+  touch "$gpg_conf"
+
+  ensure_gpg_agent_setting() {
+    local key="$1" value="$2" conf="$3"
+    if grep -q "^$key " "$conf" 2>/dev/null; then
+      sed -i "s|^$key .*|$key $value|" "$conf"
+    else
+      printf '%s %s\n' "$key" "$value" >> "$conf"
+    fi
+  }
+
+  ensure_gpg_agent_setting "default-cache-ttl" "$gpg_agent_ttl" "$gpg_agent_conf"
+  ensure_gpg_agent_setting "max-cache-ttl" "$gpg_agent_ttl" "$gpg_agent_conf"
+
+  if command -v pinentry-tty >/dev/null 2>&1; then
+    ensure_gpg_agent_setting "pinentry-program" "$(command -v pinentry-tty)" "$gpg_agent_conf"
+  fi
+
+  if ! grep -q "^allow-loopback-pinentry" "$gpg_agent_conf" 2>/dev/null; then
+    printf '%s\n' "allow-loopback-pinentry" >> "$gpg_agent_conf"
+  fi
+
+  if ! grep -q "^pinentry-mode loopback" "$gpg_conf" 2>/dev/null; then
+    printf '%s\n' "pinentry-mode loopback" >> "$gpg_conf"
+  fi
+
+  if command -v gpg-connect-agent >/dev/null 2>&1; then
+    gpg-connect-agent reloadagent /bye >/dev/null 2>&1 || true
+  fi
+
+  echo "GPG config updated."
+}
+
 install_gnome_keyring() {
   if dpkg -s gnome-keyring libsecret-1-0 dbus-x11 &>/dev/null; then
     echo "gnome-keyring already installed, skipping."
@@ -115,6 +158,7 @@ main() {
   setup_bash_aliases $devboxRG
   install_tmux
   setup_vscode_mcp_links
+  setup_gpg_config
   install_gnome_keyring
   add_ssh_port_56312
   setup_devbox_config $devboxRG
