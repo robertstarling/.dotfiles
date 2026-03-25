@@ -11,48 +11,7 @@ if [ -t 0 ]; then
   fi
 fi
 
-# Cache GPG credentials for a full work day (14h :p) to avoid repeated prompts.
-gpg_agent_conf="$HOME/.gnupg/gpg-agent.conf"
-gpg_agent_ttl=$((14 * 60 * 60))
-
-mkdir -p "$HOME/.gnupg"
-chmod 700 "$HOME/.gnupg"
-touch "$gpg_agent_conf"
-
-ensure_gpg_agent_setting() {
-  local key="$1"
-  local value="$2"
-  local conf="$3"
-
-  if grep -q "^$key " "$conf" 2>/dev/null; then
-    sed -i "s|^$key .*|$key $value|" "$conf"
-  else
-    printf '%s %s\n' "$key" "$value" >> "$conf"
-  fi
-}
-
-ensure_gpg_agent_setting "default-cache-ttl" "$gpg_agent_ttl" "$gpg_agent_conf"
-ensure_gpg_agent_setting "max-cache-ttl" "$gpg_agent_ttl" "$gpg_agent_conf"
-
-# Use pinentry-tty instead of pinentry-curses to avoid hangs on stale terminals.
-if command -v pinentry-tty >/dev/null 2>&1; then
-  ensure_gpg_agent_setting "pinentry-program" "$(command -v pinentry-tty)" "$gpg_agent_conf"
-fi
-
-# Allow loopback pinentry so passphrase prompts work even when the systemd-
-# supervised gpg-agent loses track of the controlling TTY (common over SSH).
-if ! grep -q "^allow-loopback-pinentry" "$gpg_agent_conf" 2>/dev/null; then
-  printf '%s\n' "allow-loopback-pinentry" >> "$gpg_agent_conf"
-fi
-
-# Tell gpg itself to use loopback pinentry mode so it reads the passphrase via
-# the calling process's stdin/stdout instead of relying on the agent's TTY.
-gpg_conf="$HOME/.gnupg/gpg.conf"
-touch "$gpg_conf"
-if ! grep -q "^pinentry-mode loopback" "$gpg_conf" 2>/dev/null; then
-  printf '%s\n' "pinentry-mode loopback" >> "$gpg_conf"
-fi
-
+# Reload gpg-agent so it picks up the current TTY set above.
 if command -v gpg-connect-agent >/dev/null 2>&1; then
   gpg-connect-agent reloadagent /bye >/dev/null 2>&1 || true
 fi
