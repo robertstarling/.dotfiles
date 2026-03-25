@@ -3,8 +3,14 @@
 # Start GNOME Keyring daemon for secure credential storage (e.g. Copilot CLI tokens).
 # Requires: gnome-keyring libsecret-1-0 dbus-x11 (installed by setup-nc-devbox.sh)
 
-if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-launch >/dev/null 2>&1; then
   eval "$(dbus-launch --sh-syntax)"
 fi
-eval "$(gnome-keyring-daemon --start --components=secrets 2>/dev/null)"
+if command -v gnome-keyring-daemon >/dev/null 2>&1; then
+  if keyring_output="$(gnome-keyring-daemon --start --components=secrets 2>&1)"; then
+    eval "$keyring_output"
+  else
+    echo "$keyring_output" >&2
+  fi
+fi
 export GNOME_KEYRING_CONTROL
