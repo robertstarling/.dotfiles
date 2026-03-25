@@ -3,6 +3,10 @@
 # Add ~/.local/bin to PATH; this is where pipx installs binaries
 export PATH="$PATH:$HOME/.local/bin"
 
+# Ensure ~/.docker exists so that `az acr login` can write credentials to
+# ~/.docker/config.json without failing with DOCKER_COMMAND_ERROR.
+mkdir -p "$HOME/.docker"
+
 # Global MCP server config: single source of truth in dotfiles, symlinked for
 # both Agency Copilot (~/.copilot/mcp-config.json) and VS Code (.vscode/mcp.json).
 if [ ! -L "$HOME/.copilot/mcp-config.json" ]; then
