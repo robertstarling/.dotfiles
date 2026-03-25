@@ -93,6 +93,11 @@ setup_devbox_config() {
 # Configure GPG for headless SSH use: cache credentials for a full work day,
 # use pinentry-tty (avoids curses hangs), and enable loopback pinentry mode.
 setup_gpg_config() {
+  # Install pinentry-tty (avoids curses hangs on headless SSH)
+  if ! dpkg -s pinentry-tty &>/dev/null; then
+    sudo apt-get install -y -qq pinentry-tty
+  fi
+
   local gpg_agent_conf="$HOME/.gnupg/gpg-agent.conf"
   local gpg_conf="$HOME/.gnupg/gpg.conf"
   local gpg_agent_ttl=$((14 * 60 * 60))

@@ -3,7 +3,7 @@
 # Make sure we're getting the latest version of git
 # sudo add-apt-repository ppa:git-core/ppa -y
 
-# sudo apt-get -y -q update
+sudo apt-get -y -q update
 
 # The following are library-type things. They're basically dependencies
 # sudo apt-get install -y -q \
@@ -26,7 +26,6 @@
 # These are my programs
 sudo apt-get install -y -q \
   make \
-  pinentry-tty \
   ;
   # curl \
   # git \
