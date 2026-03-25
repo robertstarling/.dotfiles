@@ -49,10 +49,6 @@
 [help]
 	# Allow git to fix my spelling.
         autocorrect = prompt
-[include]
-	path = ~/.dotfiles/local_gitconfig
-	path = ~/.dotfiles/links/delta/tokyonigh_storm.gitconfig
-	path = ~/.config/work/.gitconfig
 [init]
 	defaultBranch = main
 [interactive]
@@ -103,6 +99,11 @@
 [user]
 	email = ian.howell0@gmail.com
 	name = Ian Howell
+
+[include]
+	path = ~/.dotfiles/local_gitconfig
+	path = ~/.dotfiles/links/delta/tokyonigh_storm.gitconfig
+	path = ~/.config/work/.gitconfig
 
 [credential "azrepos:org/msazuredev"]
 	azureAuthority = https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47

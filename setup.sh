@@ -76,10 +76,9 @@ create_github_ssh_key_if_missing() {
   echo "  git remote set-url origin git@github.com:robertstarling/.dotfiles"
 }
 
-link_dotfiles() {
-  # TODO: Just `go run` this. Currently, I need to rebuild the binary every time I
-  # adjust my dotfile links.
-  "$HOME/.dotfiles/src/linkdotfiles/linkdotfiles"
+link_tmux_config() {
+  mkdir -p "$HOME/.config"
+  ln -sfn "$HOME/.dotfiles/links/tmux" "$HOME/.config/tmux"
 }
 
 main() {
@@ -104,7 +103,7 @@ main() {
 
   prevent_apt_daemon_restart_prompts
   install_components
-  link_dotfiles
+  link_tmux_config
 
   # Environment-specific setup
   if [ "$env" = "wsl" ]; then
