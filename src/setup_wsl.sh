@@ -34,6 +34,15 @@ install_packages() {
     ;
 }
 
+install_go_if_missing() {
+  if [ -x "/usr/local/go/bin/go" ]; then
+    echo "Go already installed at /usr/local/go, skipping."
+    return
+  fi
+
+  bash "$HOME/.dotfiles/src/install_go.sh"
+}
+
 setup_git_credential_helper() {
   local gcm="/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe"
   local xdg_git_config="${XDG_CONFIG_HOME:-$HOME/.config}/git/config"
@@ -83,6 +92,7 @@ main() {
   setup_passwordless_sudo
   setup_bash_aliases
   install_packages
+  install_go_if_missing
   setup_git_credential_helper
   setup_inotify_limits
   install_docker

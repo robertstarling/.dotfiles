@@ -4,6 +4,11 @@
 # level=error msg="Running error: context loading failed: failed to load packages: failed to load packages: failed to load with go/packages: err: exit status 1: stderr: go: go.mod requires go >= 1.25.7 (running go 1.24.9; GOTOOLCHAIN=local)\n" 
 export GOTOOLCHAIN=auto 
 
+# Ensure the system Go install is available in login shells.
+if [ -d "/usr/local/go/bin" ] && [[ ":$PATH:" != *":/usr/local/go/bin:"* ]]; then
+  PATH="/usr/local/go/bin:$PATH"
+fi
+
 # Add the latest Go toolchain bin directory to PATH
 GO_TOOLCHAIN_BIN="$(
   printf '%s\n' "$HOME"/go/pkg/mod/golang.org/toolchain@*/bin \
