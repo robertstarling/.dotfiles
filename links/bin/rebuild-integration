@@ -4,12 +4,10 @@ set -euo pipefail
 INTEGRATION_BRANCH="robstarling/integration"
 PR_ID="478685"
 ADO_ORG="https://dev.azure.com/msazuredev"
-ADO_PROJECT="AzureForOperatorsIndustry"
 
 TOPIC_BRANCHES=(
-  "robstarling/fix-idrac-cert-rotation-race-conditions"
   "robstarling/redfish-job-queue-poc"
-  "robstarling/redfish-job-queue-part2"
+  "robstarling/bmm-replace-dynamic-timeout"
 )
 
 git switch main
@@ -47,7 +45,6 @@ az repos pr update \
   --id "${PR_ID}" \
   --description "$(echo -e "${description}")" \
   --org "${ADO_ORG}" \
-  --project "${ADO_PROJECT}" \
   --output none
 
 echo ""
