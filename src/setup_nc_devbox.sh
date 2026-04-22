@@ -35,30 +35,6 @@ setup_bash_aliases() {
   fi
 }
 
-# Symlink .vscode/mcp.json in each repo to the global MCP config in dotfiles.
-# This gives VS Code Copilot Chat access to the same MCP servers across all repos.
-setup_vscode_mcp_links() {
-  local mcp_source="$HOME/.dotfiles/links/mcp.json"
-  if [ ! -f "$mcp_source" ]; then
-    echo "No global mcp.json found at $mcp_source, skipping VS Code MCP setup."
-    return
-  fi
-
-  local linked=0
-  for repo_dir in "$HOME"/nc-*; do
-    [ -d "$repo_dir/.git" ] || continue
-    mkdir -p "$repo_dir/.vscode"
-    if [ ! -L "$repo_dir/.vscode/mcp.json" ]; then
-      ln -sf "$mcp_source" "$repo_dir/.vscode/mcp.json"
-      ((linked++))
-    fi
-  done
-
-  if [ "$linked" -gt 0 ]; then
-    echo "Linked .vscode/mcp.json in $linked repo(s) to $mcp_source"
-  fi
-}
-
 # Alternative secure inbound SSH port from dynamic TCP range
 # (May also need to update Azure Network Security Group to allow inbound on this port) e.g.
 # [robstarling Sep2025] provide secure alternative SSH port filtered by source IP
@@ -161,7 +137,6 @@ main() {
   local devboxRG="$1"
   setup_bash_aliases $devboxRG
   install_tmux
-  setup_vscode_mcp_links
   setup_gpg_config
   install_gnome_keyring
   add_ssh_port_56312
