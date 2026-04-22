@@ -7,11 +7,11 @@ export PATH="$HOME/.dotfiles/links/bin:$HOME/.local/bin:$PATH"
 # ~/.docker/config.json without failing with DOCKER_COMMAND_ERROR.
 mkdir -p "$HOME/.docker"
 
-# MCP server config: VS Code's remote user config is the source of truth
-# (maintained via Settings Sync). Point Agency Copilot at the same file so
-# both tools share one config. Note: on a fresh devbox, this symlink is
-# dangling until you open a remote VS Code window at least once.
+# Agency Copilot MCP server config. VS Code doesn't need this (a remote
+# window inherits mcp.json from the Windows client), but Agency Copilot
+# reads ~/.copilot/mcp-config.json directly from disk, so we maintain a
+# dedicated dotfiles-tracked copy for it.
 if [ ! -L "$HOME/.copilot/mcp-config.json" ]; then
   mkdir -p "$HOME/.copilot"
-  ln -sf "$HOME/.vscode-server/data/User/mcp.json" "$HOME/.copilot/mcp-config.json"
+  ln -sf "$HOME/.dotfiles/links/copilot-mcp-config.json" "$HOME/.copilot/mcp-config.json"
 fi
