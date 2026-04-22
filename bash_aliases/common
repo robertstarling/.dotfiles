@@ -7,7 +7,7 @@ export PATH="$HOME/.dotfiles/links/bin:$HOME/.local/bin:$PATH"
 # ~/.docker/config.json without failing with DOCKER_COMMAND_ERROR.
 mkdir -p "$HOME/.docker"
 
-# Agency Copilot MCP server config. VS Code doesn't need this (a remote
+# Agency Copilot MCP server config. VS Code does not need this (a remote
 # window inherits mcp.json from the Windows client), but Agency Copilot
 # reads ~/.copilot/mcp-config.json directly from disk, so we maintain a
 # dedicated dotfiles-tracked copy for it.
