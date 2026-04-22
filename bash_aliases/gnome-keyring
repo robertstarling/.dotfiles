@@ -7,10 +7,8 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-launch >/dev/null 2>&1;
   eval "$(dbus-launch --sh-syntax)"
 fi
 if command -v gnome-keyring-daemon >/dev/null 2>&1; then
-  if keyring_output="$(gnome-keyring-daemon --start --components=secrets 2>&1)"; then
+  if keyring_output="$(gnome-keyring-daemon --start --components=secrets)"; then
     eval "$keyring_output"
-  else
-    echo "$keyring_output" >&2
   fi
 fi
 export GNOME_KEYRING_CONTROL
