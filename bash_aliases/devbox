@@ -27,11 +27,10 @@ if [ ! -L "$HOME/.local/bin/azureauth" ]; then
 fi
 
 # Show current janitor TTL when we log in
-devboxRG="robstarling-westus3-2603"
-devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
+# devboxRG="robstarling-westus3-2603"
+# devboxSub="ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
 janitor $devboxRG $devboxSub
-echo "To extend Janitor TTL for $devboxRG $devboxSub:"
-echo "janitor_reset \$devboxRG \$devboxSub"
+echo "To extend: janitor_reset -g $devboxRG -s $devboxSub -f monthly"
 
 # Reset janitor tag on the devbox resource group whenever we log into azure to prevent automated cleanup while the devbox is in use.
 alias azl='azure_login && janitor_reset $devboxRG $devboxSub'

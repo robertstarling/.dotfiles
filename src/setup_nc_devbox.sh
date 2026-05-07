@@ -19,6 +19,7 @@ setup_bash_aliases() {
     'source "$HOME/.dotfiles/bash_aliases/devbox-go"'
     'source "$HOME/.dotfiles/bash_aliases/gnome-keyring"'
     "export devboxRG=$devboxRG"
+    "export devboxSub=ba2d1b49-6fc3-4223-bd59-0ba7878b5fb3"
   )
 
   for entry in "${entries[@]}"; do

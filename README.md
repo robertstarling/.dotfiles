@@ -12,7 +12,7 @@ git remote set-url origin git@github.com:robertstarling/.dotfiles
 ./setup.sh wsl
 
 # Base setup + nc-devbox-specific config
-./setup.sh nc-devbox robstarling-2509
+./setup.sh nc-devbox robstarling-westus3-2603
 
 # TODO
 # - helm
